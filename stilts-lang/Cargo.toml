@@ -1,7 +1,9 @@
 [package]
 name = "stilts-lang"
 version = "0.1.0"
+description = "The parser for stilts"
 edition = "2021"
+license = "MIT"
 
 [dependencies]
 miette = "5.9"

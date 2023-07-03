@@ -1,7 +1,9 @@
 [package]
 name = "stilts-macros"
 version = "0.1.0"
+description = "The macros that generate the templates for stilts"
 edition = "2021"
+license = "MIT"
 
 [lib]
 proc-macro = true
