@@ -17,7 +17,7 @@ proc-macro2 = "1"
 quote = "1"
 
 # parser for the stilts language
-stilts-lang = { path = "../stilts-lang" }
+stilts-lang = { path = "../stilts-lang", version = "0.1" }
 
 # libraries to enable certain useful features
 serde = { version = "1", features = ["derive"] }

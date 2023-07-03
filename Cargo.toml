@@ -24,7 +24,7 @@ err-fancy = ["stilts-macros/fancy"]
 html-escape = "0.2"
 serde = "1.0"
 serde_json = "1.0"
-stilts-macros = { path = "./stilts-macros" }
+stilts-macros = { path = "./stilts-macros", version = "0.1" }
 
 [package.metadata.stilts]
 trim = false
