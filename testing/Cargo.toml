@@ -1,0 +1,18 @@
+[package]
+name = "stilts-testing"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+stilts = { path = "../" }
+
+[dev-dependencies]
+stilts = { path = "../", features = ["err-fancy"]}
+criterion = "0.5.1"
+
+[[bench]]
+name = "all"
+harness = false
+
+[package.metadata.stilts]
+trim = true
