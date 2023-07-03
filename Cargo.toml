@@ -8,6 +8,8 @@ license = "MIT"
 readme = "README.md"
 keywords = ["template", "jinja2", "html", "markup"]
 categories = ["template-engine"]
+homepage = "https://github.com/Atrociously/stilts"
+repository = "https://github.com/Atrociously/stilts"
 
 [workspace]
 members = [
