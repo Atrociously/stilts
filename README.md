@@ -14,6 +14,9 @@ If you have suggestions, features, questions, or anything else please feel free 
 an issue. I could especially use extra help writing unit tests for stuff, and would be
 open to working with others to get that done.
 
+### Guide
+Check out the [book](https://atrociously.github.io/stilts) for in depth documentation.
+
 ### How it works
 Stilts uses a procedural derive macro on a struct to generate template rendering code
 which results in the template code being checked by the rust compiler for correctness.
