@@ -18,3 +18,13 @@ Here is a list of all available configuration values and brief descriptions:
     - DEFAULT: `false`
 - **writer_name** The identifier of the writer in the generated trait implementation.
     - DEFAULT: `_w`
+
+## Crate Features
+
+Stilts has a few features that can be optionally enabled.
+
+- `err-narrate` Change the error messages to be optimized for narration
+- `err-fancy` Change the error messages to be fancy!
+
+All error message features are thanks to [miette](https://github.com/zkat/miette).
+The default error messages are optimized for inline editor tips.
