@@ -912,6 +912,21 @@ pub struct CallMacroExpr {
     pub args: Punctuated<syn::Expr, Token![,]>,
 }
 
+struct CallMacroArgs {
+    args: Punctuated<syn::Expr, Token![,]>,
+}
+
+impl syn::parse::Parse for CallMacroArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let content;
+        let _paren = syn::parenthesized!(content in input);
+        let args = Punctuated::parse_terminated(&content)?;
+        Ok(Self {
+            args,
+        })
+    }
+}
+
 impl<'i> Parseable<'i> for CallMacroExpr {
     fn parse_next(input: Located<'i>) -> LResult<'i, Self, Error> {
         let (input, inner) = parse_delimited(["{%", "%}"])(input)?;
@@ -923,7 +938,7 @@ impl<'i> Parseable<'i> for CallMacroExpr {
             .map_err(|e| e.msg("at least one space required after call keyword"))
             .map_err(ErrFlow::to_unrecoverable)?;
 
-        let (args, (name, _)) = take_till(tag("("))(inner)
+        let (args, name) = take_until(tag("("))(inner)
             .map_err(|e| e.msg("expected opening parenthesis for call arguments"))
             .map_err(ErrFlow::to_unrecoverable)?;
 
@@ -931,12 +946,7 @@ impl<'i> Parseable<'i> for CallMacroExpr {
             .map_err(|err| Error::from_syn(name, err))
             .map_err(ErrFlow::Unrecoverable)?;
 
-        let (_, (args, _)) = take_till(tag(")"))(args)
-            .map_err_incomplete(|e: Error| e.msg("expected ) to end list of arguments"))
-            .map_err(ErrFlow::to_unrecoverable)?;
-
-        let arg_parser = Punctuated::parse_terminated;
-        let args = syn::parse::Parser::parse_str(arg_parser, args.as_ref())
+        let CallMacroArgs { args } = syn::parse_str(&args)
             .map_err(|err| Error::from_syn(args, err))
             .map_err(ErrFlow::Unrecoverable)?;
 

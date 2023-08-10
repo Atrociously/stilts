@@ -6,7 +6,7 @@
     out
 } %}
 
-{% macro my_mac() %}
+{% macro my_mac(time: std::time::Duration) %}
     INSIDE MY MAC
 {% end %}
 
@@ -34,7 +34,7 @@
 {% end %}
 
 {% block footer %}
-    {% call my_mac() %}
+    {% call my_mac(std::time::Duration::from_secs(50)) %}
     {% let s = r#"MYSTR%}"#; %}
     {% my_func(s) %}
 {% end %}
