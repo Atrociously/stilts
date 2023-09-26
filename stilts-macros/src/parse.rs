@@ -1,5 +1,5 @@
 use syn::{spanned::Spanned, Data, DeriveInput};
-use syn::{Attribute, Generics, Ident, LitStr};
+use syn::{Attribute, Generics, Ident, LitStr, Path};
 
 use crate::{err, ATTR_NAME};
 
@@ -31,6 +31,7 @@ impl TemplateInput {
 
 pub struct TemplateAttrs {
     pub path: LitStr,
+    pub escape: Option<Path>,
 }
 
 impl TemplateAttrs {
@@ -40,6 +41,7 @@ impl TemplateAttrs {
             .filter(|attr| attr.path().is_ident(ATTR_NAME));
 
         let mut path = None;
+        let mut escape = None;
 
         for attr in attrs {
             attr.parse_nested_meta(|meta| {
@@ -48,12 +50,18 @@ impl TemplateAttrs {
                     let value: LitStr = value.parse()?;
                     path = Some(value);
                 }
+                if meta.path.is_ident("escape") {
+                    let value = meta.value()?;
+                    let value: Path = value.parse()?;
+                    escape = Some(value);
+                }
                 Ok(())
             })?;
         }
 
         Ok(Self {
-            path: path.ok_or_else(|| err!(r#"templates require a `path` attribute to find the template file e.g. `#[stilts(path = "index.html")]`"#))?
+            path: path.ok_or_else(|| err!(r#"templates require a `path` attribute to find the template file e.g. `#[stilts(path = "index.html")]`"#))?,
+            escape,
         })
     }
 }

@@ -1,0 +1,24 @@
+=========
+Big Table
+=========
+
+<table>
+{% for row in table %}
+<tr>{% for col in row %}<td>{% col %}</td>{% end %}</tr>
+{% end %}
+</table>
+
+---
+
+(source_file
+  (text)
+  (expr (expr_content))
+  (text)
+  (expr (expr_content))
+  (text)
+  (expr (expr_content))
+  (text)
+  (expr (expr_content))
+  (text)
+  (expr (expr_content))
+  (text))

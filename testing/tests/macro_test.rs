@@ -9,13 +9,19 @@ struct MyTemplate<'a> {
 }
 
 #[test]
-fn print() {
-    println!(
-        "{}",
-        MyTemplate {
-            a: "my code content<a></a>",
-        }
-        .render()
-        .unwrap()
-    );
+fn ensure_matches() {
+    const EXPECTED: &str = r###"<!DOCTYPE html>
+<html><head>i have stuffoverwrites</head>
+    <body>
+        <header>2my code content &lt;a&gt;&lt;&#x2F;a&gt;my code content &lt;a&gt;&lt;&#x2F;a&gt;</header>
+        <main>Hello Word<a href="/">MY MAN</a>my code content <a></a></main>
+        <footer>INSIDE MY MACOOFMYSTR%}</footer>
+    </body>
+</html>"###;
+
+    let val = MyTemplate {
+        a: "my code content <a></a>",
+    }.render().unwrap();
+
+    assert_eq!(val, EXPECTED);
 }

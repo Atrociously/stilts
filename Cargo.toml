@@ -1,6 +1,6 @@
 [package]
 name = "stilts"
-version = "0.1.1"
+version = "0.2.0"
 description = "A compiled templating language with rust syntax"
 edition = "2021"
 authors = ["Jack <notatrocious@gmail.com>"]
@@ -15,7 +15,7 @@ repository = "https://github.com/Atrociously/stilts"
 members = [
     "stilts-lang",
     "stilts-macros",
-    "testing"
+    "testing",
 ]
 
 [features]

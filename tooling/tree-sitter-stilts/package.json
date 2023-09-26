@@ -1,0 +1,29 @@
+{
+    "name": "tree-sitter-stilts",
+    "version": "1.0.0",
+    "description": "",
+    "main": "bindings/node",
+    "scripts": {
+        "test": "tree-sitter test",
+        "build": "tree-sitter generate"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "nan": "^2.17.0"
+    },
+    "devDependencies": {
+        "tree-sitter-cli": "^0.20.8"
+    },
+    "tree-sitter": [
+        {
+            "scope": "source.stilts",
+            "file-types": [
+                "html",
+                "htm"
+            ],
+            "injection-regex": "stilts"
+        }
+    ]
+}

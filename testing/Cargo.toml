@@ -16,3 +16,4 @@ harness = false
 
 [package.metadata.stilts]
 trim = true
+escape = { js = "CustomEscaper" }

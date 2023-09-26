@@ -143,6 +143,12 @@ impl<'a> From<Located<'a>> for Cow<'a, str> {
     }
 }
 
+impl<'i> From<&'i str> for Located<'i> {
+    fn from(value: &'i str) -> Self {
+        Self::new(value)
+    }
+}
+
 impl std::fmt::Debug for Located<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Located")

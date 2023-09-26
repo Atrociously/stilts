@@ -20,5 +20,17 @@ This will generate a trait implementation for the struct `Example`.
 `stilts()` is an attribute for the derive macro, and is used to
 specify the path of the template.
 
-Currently the attribute only gets the path. When more options are
-added in the future they will be expanded upon here.
+Stilts now implements opt-out escaping and as such presents an
+option for the macro to override the escaping implementation.
+
+```rust
+#[derive(Template)]
+#[stilts(path = "index.html", escape = stilts::escaping::Empty)]
+struct Example {
+
+}
+```
+The above override would effectively disable escaping for the whole template.
+
+If you have a custom file type that you want to have escaped you can implement
+the `Escaper` trait and use the macro attribute or set a mime type in the config.

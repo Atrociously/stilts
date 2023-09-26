@@ -1,3 +1,6 @@
+use crate::Root;
+
+const TEMPLATE: &str = r###"
 {% extends "base.html" %}
 
 {% fn my_func(s: &str) -> String {
@@ -11,6 +14,7 @@
 {% end %}
 
 {% block head %}
+    {% a %}
     {% super() %}
     overwrites
 {% end %}
@@ -25,12 +29,17 @@
             {% when _ %}
         {% end %}
     {% end %}
+    {% if true %}
+        {% a %}
+    {% else %}
+        {% a %}
+    {% end %}
 {% end %}
 
 {% block main %}
     {% "Hello Word" %}
     {% include "other.html" %}
-    {% a.safe() %}
+    {% a %}
 {% end %}
 
 {% block footer %}
@@ -38,3 +47,9 @@
     {% let s = r#"MYSTR%}"#; %}
     {% my_func(s) %}
 {% end %}
+"###;
+
+#[test]
+pub fn parse_example_template() {
+    Root::parse(TEMPLATE).unwrap();
+}

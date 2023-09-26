@@ -109,3 +109,7 @@ But you aren't limited to a single line either you can split them into as many l
 ### Goals
 - Create a templating language that is both familiar to jinja users and rust developers
 - Have good error reporting and messages with useful error locations.
+
+### Other Stuff
+In the tooling directory there is a work-in-progress tree-sitter parser implementation.
+If you know better how to get that working that would be super cool.

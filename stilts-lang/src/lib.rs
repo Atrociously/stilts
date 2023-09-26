@@ -9,6 +9,9 @@ use error::LResultExt;
 use parse::{alt, eof, whitespace1, Parseable, Parser};
 use syn::{punctuated::Punctuated, Label, LitStr, Token};
 
+#[cfg(test)]
+mod tests;
+
 mod error;
 mod locate;
 /// The module containing the custom parser combinators used in parsing the language
@@ -335,8 +338,7 @@ impl<'i> Parseable<'i> for ExtendsExpr {
         let (input, inner) = parse_delimited(["{%", "%}"])(input)?;
 
         let (inner, _) = whitespace0(inner)?;
-        let (inner, _) = tag("extends")(inner)
-            .map_err(ErrFlow::to_backtrack)?;
+        let (inner, _) = tag("extends")(inner).map_err(ErrFlow::to_backtrack)?;
         let (inner, _) = whitespace1(inner).map_err(ErrFlow::to_unrecoverable)?;
 
         let reference = syn::parse_str(inner.as_ref())
@@ -380,8 +382,7 @@ impl<'i> Parseable<'i> for BlockExpr<'i> {
         let (input, inner) = parse_delimited(["{%", "%}"])(input)?;
 
         let (inner, _) = whitespace0(inner)?;
-        let (inner, block_tag) = tag("block")(inner)
-            .map_err(ErrFlow::to_backtrack)?;
+        let (inner, block_tag) = tag("block")(inner).map_err(ErrFlow::to_backtrack)?;
         let (inner, _) = whitespace1(inner).map_err(ErrFlow::to_unrecoverable)?;
 
         let name = syn::parse_str(inner.as_ref())
@@ -457,8 +458,7 @@ impl<'i> Parseable<'i> for IncludeExpr {
         let (input, inner) = parse_delimited(["{%", "%}"])(input)?;
 
         let (inner, _) = whitespace0(inner)?;
-        let (inner, _) = tag("include")(inner)
-            .map_err(ErrFlow::to_backtrack)?;
+        let (inner, _) = tag("include")(inner).map_err(ErrFlow::to_backtrack)?;
         let (inner, _) = whitespace1(inner).map_err(ErrFlow::to_unrecoverable)?;
 
         let includes = syn::parse_str(inner.as_ref())
@@ -552,8 +552,7 @@ impl<'i> Parseable<'i> for End {
     fn parse_next(input: Located<'i>) -> LResult<'i, Self> {
         let (input, _) = tag("{%")(input)?;
         let (input, _) = whitespace0(input)?;
-        let (input, _) = tag("end")(input)
-            .map_err(ErrFlow::to_backtrack)?;
+        let (input, _) = tag("end")(input).map_err(ErrFlow::to_backtrack)?;
         let (input, _) = whitespace0(input)?;
         let (input, _) = tag("%}")(input).map_err(ErrFlow::to_unrecoverable)?;
 
@@ -694,7 +693,7 @@ impl<'i> Parseable<'i> for IfClose<'i> {
         let (input, inner) = parse_delimited(["{%", "%}"])(input)?;
 
         let (inner, _) = whitespace0(inner)?;
-        let (else_if_inner, _) = tag("else")(inner)?; // make sure that we have an else expresion
+        let (else_if_inner, _) = tag("else")(inner).map_err(ErrFlow::to_backtrack)?; // make sure that we have an else expresion
         let (else_if_inner, _) = whitespace1(else_if_inner)?;
 
         if tag::<Error>("if")(else_if_inner).is_ok() {
@@ -812,10 +811,7 @@ impl syn::parse::Parse for MatchArmOpen {
                 guard: Some((if_token, expr)),
             })
         } else {
-            Ok(Self {
-                pat,
-                guard: None,
-            })
+            Ok(Self { pat, guard: None })
         }
     }
 }
@@ -825,10 +821,10 @@ impl<'i> Parseable<'i> for MatchArm<'i> {
         let (input, inner) = parse_delimited(["{%", "%}"])(input)?;
 
         let (inner, _) = whitespace0(inner)?;
-        let (inner, _) = tag("when")(inner)?;
+        let (inner, _) = tag("when")(inner).map_err(ErrFlow::to_backtrack)?;
 
         let open: MatchArmOpen = syn::parse_str(inner.as_ref())
-        //let pat = syn::parse::Parser::parse_str(syn::Pat::parse_multi, inner.as_ref())
+            //let pat = syn::parse::Parser::parse_str(syn::Pat::parse_multi, inner.as_ref())
             .map_err(|err| Error::from_syn(inner, err))
             .map_err(ErrFlow::Unrecoverable)?;
 
@@ -841,11 +837,14 @@ impl<'i> Parseable<'i> for MatchArm<'i> {
         )(input)
         .map_err(ErrFlow::to_unrecoverable)?;
 
-        Ok((remaining, Self {
-            pat: open.pat,
-            guard: open.guard.map(|g| g.1),
-            content
-        }))
+        Ok((
+            remaining,
+            Self {
+                pat: open.pat,
+                guard: open.guard.map(|g| g.1),
+                content,
+            },
+        ))
     }
 }
 
@@ -865,8 +864,7 @@ impl<'i> Parseable<'i> for MacroExpr<'i> {
         let (input, inner) = parse_delimited(["{%", "%}"])(input)?;
 
         let (inner, _) = whitespace0(inner)?;
-        let (inner, _) = tag("macro")(inner)
-            .map_err(ErrFlow::to_backtrack)?;
+        let (inner, _) = tag("macro")(inner).map_err(ErrFlow::to_backtrack)?;
         let (inner, _) = whitespace1(inner)
             .map_err(|e| e.msg("at least one space required after macro keyword"))
             .map_err(ErrFlow::to_unrecoverable)?;
@@ -921,9 +919,7 @@ impl syn::parse::Parse for CallMacroArgs {
         let content;
         let _paren = syn::parenthesized!(content in input);
         let args = Punctuated::parse_terminated(&content)?;
-        Ok(Self {
-            args,
-        })
+        Ok(Self { args })
     }
 }
 
@@ -932,8 +928,7 @@ impl<'i> Parseable<'i> for CallMacroExpr {
         let (input, inner) = parse_delimited(["{%", "%}"])(input)?;
 
         let (inner, _) = whitespace0(inner)?;
-        let (inner, _) = tag("call")(inner)
-            .map_err(ErrFlow::to_backtrack)?;
+        let (inner, _) = tag("call")(inner).map_err(ErrFlow::to_backtrack)?;
         let (inner, _) = whitespace1(inner)
             .map_err(|e| e.msg("at least one space required after call keyword"))
             .map_err(ErrFlow::to_unrecoverable)?;

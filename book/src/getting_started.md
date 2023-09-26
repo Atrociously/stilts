@@ -4,7 +4,7 @@ Make sure to add `stilts` to your dependencies
 
 ```toml
 [dependencies]
-stilts = "0.1.0"
+stilts = "0.2.0"
 ```
 
 By default your project templates will be searched
@@ -25,7 +25,7 @@ Then in your crate add the following rust code
 use stilts::Template;
 
 #[derive(Template)]
-#[template(path = "index.html")] // replace with the name of your file if you changed it
+#[stilts(path = "index.html")] // replace with the name of your file if you changed it
 struct MyFirstTemplate<'a> { // The struct name does not matter and can have generics
     name: &'a str, // fields on this struct can be used in your template
 }

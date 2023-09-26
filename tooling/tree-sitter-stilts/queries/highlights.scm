@@ -1,0 +1,4 @@
+[
+  "{%"
+  "%}"
+] @punctuation.bracket

@@ -1,7 +1,6 @@
 //! The derive macro that generates the rust code for the templates
 
 #![forbid(unsafe_code)]
-#![warn(missing_docs)]
 
 use parse::TemplateInput;
 use proc_macro::TokenStream;
@@ -36,21 +35,8 @@ pub(crate) use abort;
 use quote::quote;
 use syn::DeriveInput;
 
-/// Create a stilts template
-///
-/// Examples:
-/// ```rust
-/// #[derive(Template)]
-/// #[stilts(path = "index.html")]
-/// struct MyTemplate {
-///     my_data: String,
-/// }
-/// ```
-///
-/// contents of index.html
-/// ```
-/// <button>{% my_data %}</button>
-/// ```
+// see the main lib.rs for the documentation on this trait
+// its there and not here because it can link to other important things
 #[proc_macro_derive(Template, attributes(stilts))]
 pub fn derive_template(input: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(input as DeriveInput);

@@ -7,7 +7,7 @@ use stilts_lang::{BlockExpr, BlockItem, Expr, ExtendsExpr, IfClose, Item, MatchA
 
 use crate::config::Config;
 use crate::err;
-use crate::parse::TemplateInput;
+use crate::parse::{TemplateInput, TemplateAttrs};
 
 fn format_err(e: stilts_lang::Error) -> syn::Error {
     #[cfg(not(any(feature = "narratable", feature = "fancy")))]
@@ -32,17 +32,22 @@ fn format_err(e: stilts_lang::Error) -> syn::Error {
 struct Graph(Vec<TemplateNode>);
 
 impl Graph {
-    pub fn load(cfg: &Config, file: &str) -> syn::Result<Self> {
+    pub fn load(cfg: &Config, attrs: &TemplateAttrs) -> syn::Result<Self> {
         let mut graph = Vec::with_capacity(1);
 
-        let (path, content) = read_template(cfg, file)?;
+        let (path, content) = read_template(cfg, &attrs.path.value())?;
         let root = Root::parse(&content)
             .map(Root::into_owned)
             .map_err(format_err)?;
 
         let mut parent = Self::get_parent(&root);
         let blocks = Self::get_blocks(root.content.iter());
-        let node = TemplateNode { path, blocks, root };
+        let node = TemplateNode {
+            path,
+            blocks,
+            root,
+            escape_override: attrs.escape.clone(),
+        };
 
         graph.push(node);
 
@@ -68,7 +73,12 @@ impl Graph {
                 .map_err(format_err)?;
             let blocks = Self::get_blocks(&root.content);
 
-            let node = TemplateNode { path, blocks, root };
+            let node = TemplateNode {
+                path,
+                blocks,
+                root,
+                escape_override: attrs.escape.clone(),
+            };
             parent = Self::get_parent(&node.root);
             graph.push(node);
         }
@@ -77,13 +87,15 @@ impl Graph {
         Ok(Self(graph))
     }
 
+    // descend the template inheritance list rendering all of them sequentially
+    // while performing necessary expansions
     pub fn expand(self, cfg: &Config) -> syn::Result<TokenStream> {
         let mut expanded_blocks = Vec::new();
         let mut toks = TokenStream::new();
         let mut cur = Some(TemplateRef(0, &self.0));
         while let Some(t) = cur {
             let path = t.path.as_str();
-            // this ensures that the compiler knows that the code is dependent on this file
+            // this should ensure that the compiler knows that the code is dependent on this file
             toks.extend(quote! { ::core::include_bytes!(#path); });
             toks.extend(t.expand(cfg, &expanded_blocks)?);
             expanded_blocks.extend(t.blocks.keys().cloned());
@@ -135,10 +147,12 @@ impl Graph {
 struct TemplateRef<'a>(usize, &'a [TemplateNode]);
 
 impl<'a> TemplateRef<'a> {
+    // get the parent node if one exists
     fn parent(self) -> Option<Self> {
         self.0.checked_sub(1).map(|idx| Self(idx, self.1))
     }
 
+    // get the child node if one exists
     fn child(self) -> Option<Self> {
         let idx = self.0 + 1;
         if idx < self.1.len() {
@@ -148,16 +162,22 @@ impl<'a> TemplateRef<'a> {
         }
     }
 
+    // get the deepest child that contains the specified block_name
+    // checks ALL nodes reguardless of if the direct parent did not contain
+    // the block, returns the current template if none is found
     fn deepest_child(self, block_name: &'a syn::Ident) -> TemplateRef {
         let mut cur = self;
         let mut next = self.child();
-        while next.is_some_and(|t| t.blocks.get(block_name).is_some()) {
-            cur = next.unwrap();
+        while let Some(t) = next {
+            if t.blocks.get(block_name).is_some() {
+                cur = t;
+            }
             next = next.unwrap().child();
         }
         cur
     }
 
+    // expand a block directly (does not lookup the deepest child to expand)
     fn expand_block_inner(self, cfg: &Config, block: &BlockExpr) -> syn::Result<TokenStream> {
         block
             .content
@@ -177,12 +197,15 @@ impl<'a> TemplateRef<'a> {
             .collect()
     }
 
+    // expand a block by navigating to the deepest child and
+    // then using `expand_block_inner`
     fn expand_block(self, cfg: &Config, block: &BlockExpr) -> syn::Result<TokenStream> {
         let deepest = self.deepest_child(&block.name);
         let block = deepest.blocks.get(&block.name).unwrap();
         deepest.expand_block_inner(cfg, block)
     }
 
+    // expand the closing statement of an if expression
     fn expand_if_close(self, cfg: &Config, close: &IfClose) -> syn::Result<TokenStream> {
         match close {
             IfClose::Close => Ok(quote! {}),
@@ -208,6 +231,7 @@ impl<'a> TemplateRef<'a> {
         }
     }
 
+    // expand an arm of a match expression
     fn expand_match_arm(self, cfg: &Config, arm: &MatchArm) -> syn::Result<TokenStream> {
         let pat = &arm.pat;
         let guard = arm.guard.as_ref().map(|g| quote! { if #g });
@@ -219,8 +243,11 @@ impl<'a> TemplateRef<'a> {
         Ok(quote! { #pat #guard => { #items } })
     }
 
+    // expand an item which may be one of many different things
     fn expand_item(self, cfg: &Config, item: &Item) -> syn::Result<TokenStream> {
         let writer = &cfg.writer_name;
+        let escaper = self.escape_override.clone()
+            .unwrap_or_else(|| cfg.escaper(self.path.extension().unwrap_or_default()));
         match item {
             Item::Content(c) => {
                 let c = match cfg.trim {
@@ -233,7 +260,7 @@ impl<'a> TemplateRef<'a> {
                     Ok(quote! {})
                 }
             }
-            Item::Expr(Expr::Expr(expr)) => Ok(quote! { ::core::write!(#writer, "{}", #expr)?; }),
+            Item::Expr(Expr::Expr(expr)) => Ok(quote! { ::core::write!(#writer, "{}", ::stilts::escaping::Escaped::new(&#expr, #escaper))?; }),
             Item::Expr(Expr::Stmt(stmt)) => Ok(quote! { #stmt }),
             Item::Expr(Expr::For(for_expr)) => {
                 let label = &for_expr.label;
@@ -303,7 +330,11 @@ impl<'a> TemplateRef<'a> {
                 })
             }
             Item::Expr(Expr::Include(include_expr)) => {
-                let graph = Graph::load(cfg, &include_expr.includes.value())?;
+                let attrs = TemplateAttrs {
+                    path: syn::LitStr::new(&include_expr.includes.value(), proc_macro2::Span::call_site()),
+                    escape: self.escape_override.clone(),
+                };
+                let graph = Graph::load(cfg, &attrs)?;
                 graph.expand(cfg)
             }
             Item::Expr(Expr::Block(block_expr)) => self.expand_block(cfg, block_expr),
@@ -311,6 +342,7 @@ impl<'a> TemplateRef<'a> {
         }
     }
 
+    // expand the whole template
     fn expand(self, cfg: &Config, prev: &[syn::Ident]) -> syn::Result<TokenStream> {
         self.root
             .content
@@ -335,6 +367,7 @@ impl<'a> std::ops::Deref for TemplateRef<'a> {
 #[derive(Debug)]
 struct TemplateNode {
     path: Utf8PathBuf,
+    escape_override: Option<syn::Path>,
     blocks: HashMap<syn::Ident, BlockExpr<'static>>,
     root: Root<'static>,
 }
@@ -361,7 +394,7 @@ pub fn template(input: TemplateInput) -> syn::Result<TokenStream> {
 
     let config = Config::load().map_err(|e| err!(e))?;
 
-    let graph = Graph::load(&config, &attrs.path.value())?;
+    let graph = Graph::load(&config, attrs)?;
     let template_code = graph.expand(&config)?;
 
     let writer = &config.writer_name;
