@@ -99,12 +99,12 @@ But you aren't limited to a single line either you can split them into as many l
 ### Supported Template Constructs
 - Inheritance
 - for loops
-- if/else if/else
+- if/ else if /else
 - match expressions
 - includes statements
 - variables (as a result of allowing arbitrary rust expressions and statements)
 - useful extension traits imported into scope
-- Opt-in HTML escaping (if you have ideas on implementing Opt-out let me know)
+- Configurable Opt-out HTML escaping
 
 ### Goals
 - Create a templating language that is both familiar to jinja users and rust developers
