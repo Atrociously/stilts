@@ -186,7 +186,7 @@ of a parent.
 {% extends "parent.html" %}
 
 {% block head %}
-    {{ super() }} <!-- This is another expr tag that is only allowed within blocks -->
+    {% super() %} <!-- This is another expr tag that is only allowed within blocks -->
     <script>
         // child script
     </script>
