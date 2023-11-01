@@ -3,7 +3,16 @@ name = "stilts-testing"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+actix-web = ["dep:actix-web", "stilts/actix-web"]
+axum = ["dep:axum", "stilts/axum"]
+gotham = ["dep:gotham", "stilts/gotham"]
+
 [dependencies]
+actix-web = { version = "*", optional = true }
+axum = { version = "*", optional = true }
+gotham = { version = "*", optional = true }
+
 stilts = { path = "../" }
 
 [dev-dependencies]

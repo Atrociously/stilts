@@ -10,7 +10,9 @@
 //! this setting can be changed in the configuration.
 //!
 //! Defining a template:
-//! ```no_run
+//! ```ignore
+//! use stilts::Template;
+//!
 //! #[derive(Template)]
 //! #[stilts(path = "example.html")]
 //! struct MyExample {
@@ -19,9 +21,7 @@
 //! ```
 //!
 //! Using said template:
-//! ```no_run
-//! use stilts::Template;
-//!
+//! ```ignore
 //! let my_template = MyExample {
 //!     value: "Hello, World".to_string(),
 //! };
@@ -64,7 +64,7 @@ pub use extensions::{DebugExt, DisplayExt, SerializeExt};
 ///
 /// ## Examples:
 /// Standard use case
-/// ```no_run
+/// ```ignore
 /// #[derive(Template)]
 /// #[stilts(path = "index.html")]
 /// struct MyTemplate {
@@ -73,7 +73,7 @@ pub use extensions::{DebugExt, DisplayExt, SerializeExt};
 /// ```
 /// 
 /// An example of setting the escape to something else
-/// ```no_run
+/// ```ignore
 /// #[derive(Template)]
 /// #[stilts(path = "index.html", escape = ::stilts::escaping::Empty)]
 /// struct MyOverridenTemplate {
@@ -81,6 +81,12 @@ pub use extensions::{DebugExt, DisplayExt, SerializeExt};
 /// }
 /// ```
 pub use stilts_macros::Template;
+
+#[cfg(any(feature = "warp", feature = "tide"))]
+mod integrations;
+#[cfg(any(feature = "warp", feature = "tide"))]
+pub use integrations::*;
+
 
 pub mod escaping;
 mod extensions;

@@ -13,6 +13,7 @@ fn format_err(e: stilts_lang::Error) -> syn::Error {
     #[cfg(not(any(feature = "narratable", feature = "fancy")))]
     return err!(e.display_simple());
 
+    #[allow(unused_variables)]
     #[cfg(feature = "narratable")]
     let handler = miette::NarratableReportHandler::new();
     #[cfg(feature = "fancy")]
@@ -389,7 +390,6 @@ pub fn template(input: TemplateInput) -> syn::Result<TokenStream> {
         generics,
         fields,
         attrs,
-        ..
     } = &input;
 
     let config = Config::load().map_err(|e| err!(e))?;
@@ -402,7 +402,17 @@ pub fn template(input: TemplateInput) -> syn::Result<TokenStream> {
 
     let (impl_gen, type_gen, where_clause) = generics.split_for_impl();
 
+    #[allow(unused_mut)]
+    let mut integrations = TokenStream::new();
+    #[cfg(feature = "actix-web")]
+    integrations.extend(crate::integrations::actix_web::expand_integration(&attrs.path.value(), ident, &impl_gen, &type_gen, &where_clause));
+    #[cfg(feature = "axum")]
+    integrations.extend(crate::integrations::axum::expand_integration(&attrs.path.value(), ident, &impl_gen, &type_gen, &where_clause));
+    #[cfg(feature = "gotham")]
+    integrations.extend(crate::integrations::gotham::expand_integration(&attrs.path.value(), ident, &impl_gen, &type_gen, &where_clause));
+
     Ok(quote! {
+        #integrations
         impl #impl_gen ::stilts::Template for #ident #type_gen #where_clause {
             fn fmt(&self, #writer: &mut (impl ::core::fmt::Write + ?::core::marker::Sized)) -> ::core::fmt::Result {
                 use ::stilts::SerializeExt as _;
