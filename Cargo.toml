@@ -19,7 +19,6 @@ members = [
 ]
 
 [features]
-default = ["tide"]
 err-narrate = ["stilts-macros/narratable"]
 err-fancy = ["stilts-macros/fancy"]
 actix-web = ["stilts-macros/actix-web"]
