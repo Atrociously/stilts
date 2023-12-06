@@ -12,7 +12,10 @@ pub struct Config {
     pub trim: bool,
     #[serde(deserialize_with = "Config::deserialize_writer_name")]
     pub writer_name: syn::Ident,
-    #[serde(rename = "escape", deserialize_with = "Config::deserialize_escape_table")]
+    #[serde(
+        rename = "escape",
+        deserialize_with = "Config::deserialize_escape_table"
+    )]
     escape_table: HashMap<String, syn::Path>,
 }
 
@@ -24,7 +27,9 @@ impl Config {
             .exec()
             .map_err(|e| err!(e))?;
 
-        let meta = metadata.packages.iter()
+        let meta = metadata
+            .packages
+            .iter()
             .find(|p| p.name == pkg)
             .and_then(|p| p.metadata.as_object())
             .and_then(|meta| meta.get("stilts"));
@@ -39,7 +44,8 @@ impl Config {
     }
 
     pub fn escaper(&self, ext: &str) -> syn::Path {
-        self.escape_table.get(ext)
+        self.escape_table
+            .get(ext)
             .cloned()
             .unwrap_or_else(|| syn::parse_str("::stilts::escaping::Empty").unwrap())
     }
@@ -53,7 +59,9 @@ impl Config {
     }
 
     // extend the default table with the parsed version users can overwrite things if they want
-    fn deserialize_escape_table<'de, D>(deserializer: D) -> Result<HashMap<String, syn::Path>, D::Error>
+    fn deserialize_escape_table<'de, D>(
+        deserializer: D,
+    ) -> Result<HashMap<String, syn::Path>, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -61,7 +69,9 @@ impl Config {
         let parsed = HashMap::<String, String>::deserialize(deserializer)?;
 
         for (key, val) in parsed {
-            let key = key.parse().map_err(<D::Error as serde::de::Error>::custom)?;
+            let key = key
+                .parse()
+                .map_err(<D::Error as serde::de::Error>::custom)?;
             let val = syn::parse_str(&val).map_err(<D::Error as serde::de::Error>::custom)?;
             table.insert(key, val);
         }
@@ -70,9 +80,16 @@ impl Config {
 
     fn default_escape_table() -> HashMap<String, syn::Path> {
         [
-            ("html".to_string(), syn::parse_str("::stilts::escaping::Html").unwrap()),
-            ("htm".to_string(), syn::parse_str("::stilts::escaping::Html").unwrap()),
-        ].into()
+            (
+                "html".to_string(),
+                syn::parse_str("::stilts::escaping::Html").unwrap(),
+            ),
+            (
+                "htm".to_string(),
+                syn::parse_str("::stilts::escaping::Html").unwrap(),
+            ),
+        ]
+        .into()
     }
 }
 

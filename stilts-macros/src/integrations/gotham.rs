@@ -1,8 +1,18 @@
 use proc_macro2::TokenStream;
 use syn::{Ident, ImplGenerics, TypeGenerics, WhereClause};
 
-pub fn expand_integration(path: &str, ident: &Ident, impl_gen: &ImplGenerics, type_gen: &TypeGenerics, where_clause: &Option<&WhereClause>) -> TokenStream {
-    let mime = mime_guess::from_path(path).first_or_text_plain().to_string();
+use crate::parse::TemplateSource;
+
+pub fn expand_integration(
+    source: &TemplateSource,
+    ident: &Ident,
+    impl_gen: &ImplGenerics,
+    type_gen: &TypeGenerics,
+    where_clause: &Option<&WhereClause>,
+) -> TokenStream {
+    let mime = mime_guess::from_path(source.as_path().unwrap_or_default())
+        .first_or_text_plain()
+        .to_string();
     quote::quote! {
         impl #impl_gen ::gotham::handler::IntoResponse for #ident #type_gen #where_clause {
             fn into_response(self, state: &::gotham::state::State) -> ::gotham::hyper::http::Response<::gotham::hyper::body::Body> {
@@ -17,6 +27,6 @@ pub fn expand_integration(path: &str, ident: &Ident, impl_gen: &ImplGenerics, ty
                     Err(_) => ::gotham::hyper::http::Response::builder().status(500).body(::gotham::hyper::body::Body::empty().into()).unwrap(),
                 }
             }
-        } 
+        }
     }
 }

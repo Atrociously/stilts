@@ -7,7 +7,7 @@ use stilts_lang::{BlockExpr, BlockItem, Expr, ExtendsExpr, IfClose, Item, MatchA
 
 use crate::config::Config;
 use crate::err;
-use crate::parse::{TemplateInput, TemplateAttrs};
+use crate::parse::{TemplateAttrs, TemplateInput, TemplateSource};
 
 fn format_err(e: stilts_lang::Error) -> syn::Error {
     #[cfg(not(any(feature = "narratable", feature = "fancy")))]
@@ -36,49 +36,62 @@ impl Graph {
     pub fn load(cfg: &Config, attrs: &TemplateAttrs) -> syn::Result<Self> {
         let mut graph = Vec::with_capacity(1);
 
-        let (path, content) = read_template(cfg, &attrs.path.value())?;
-        let root = Root::parse(&content)
+        let data = read_template(cfg, &attrs.source)?;
+        let root = Root::parse(&data.content)
             .map(Root::into_owned)
             .map_err(format_err)?;
 
         let mut parent = Self::get_parent(&root);
         let blocks = Self::get_blocks(root.content.iter());
         let node = TemplateNode {
-            path,
+            data,
             blocks,
             root,
             escape_override: attrs.escape.clone(),
+            trim_override: attrs.trim,
         };
 
         graph.push(node);
 
-        while let Some(p) = parent {
-            let (path, content) = read_template(cfg, &p.reference.value())?;
-
+        fn check_dependency_cycle(
+            cfg: &Config,
+            graph: &Vec<TemplateNode>,
+            path: &Utf8PathBuf,
+        ) -> Result<(), syn::Error> {
             // check for graph cycle
-            if graph.iter().any(|t| t.path == path) {
-                let mut cycle_str =
-                    graph
-                        .iter()
-                        .map(|t| &t.path)
-                        .fold(String::new(), |mut acc, p| {
-                            acc.push_str(&format!("{} -> ", relative_to(cfg, p)));
-                            acc
-                        });
-                cycle_str.push_str(&relative_to(cfg, &path));
+            if graph.iter().any(|t| t.data.path.as_ref() == Some(path)) {
+                let mut cycle_str = graph.iter().filter_map(|t| t.data.path.as_ref()).fold(
+                    String::new(),
+                    |mut acc, p| {
+                        acc.push_str(&format!("{} -> ", relative_to(cfg, &p)));
+                        acc
+                    },
+                );
+                cycle_str.push_str(&relative_to(cfg, path));
                 return Err(err!(format!("dependency cycle detected: {cycle_str}")));
+            } else {
+                Ok(())
+            }
+        }
+
+        while let Some(p) = parent {
+            let data = read_template(cfg, &TemplateSource::new_file(p.reference.value()))?;
+
+            if let Some(path) = &data.path {
+                check_dependency_cycle(cfg, &graph, path)?;
             }
 
-            let root = Root::parse(&content)
+            let root = Root::parse(&data.content)
                 .map(Root::into_owned)
                 .map_err(format_err)?;
             let blocks = Self::get_blocks(&root.content);
 
             let node = TemplateNode {
-                path,
+                data,
                 blocks,
                 root,
                 escape_override: attrs.escape.clone(),
+                trim_override: attrs.trim,
             };
             parent = Self::get_parent(&node.root);
             graph.push(node);
@@ -95,9 +108,10 @@ impl Graph {
         let mut toks = TokenStream::new();
         let mut cur = Some(TemplateRef(0, &self.0));
         while let Some(t) = cur {
-            let path = t.path.as_str();
-            // this should ensure that the compiler knows that the code is dependent on this file
-            toks.extend(quote! { ::core::include_bytes!(#path); });
+            if let Some(path) = t.data.path.as_ref().map(|p| p.as_str()) {
+                // this should ensure that the compiler knows that the code is dependent on this file
+                toks.extend(quote! { ::core::include_bytes!(#path); });
+            }
             toks.extend(t.expand(cfg, &expanded_blocks)?);
             expanded_blocks.extend(t.blocks.keys().cloned());
             cur = t.child();
@@ -247,11 +261,18 @@ impl<'a> TemplateRef<'a> {
     // expand an item which may be one of many different things
     fn expand_item(self, cfg: &Config, item: &Item) -> syn::Result<TokenStream> {
         let writer = &cfg.writer_name;
-        let escaper = self.escape_override.clone()
-            .unwrap_or_else(|| cfg.escaper(self.path.extension().unwrap_or_default()));
+        let escaper = self.escape_override.clone().unwrap_or_else(|| {
+            cfg.escaper(
+                self.data
+                    .path
+                    .as_ref()
+                    .and_then(|p| p.extension())
+                    .unwrap_or_default(),
+            )
+        });
         match item {
             Item::Content(c) => {
-                let c = match cfg.trim {
+                let c = match self.trim_override.unwrap_or(cfg.trim) {
                     true => c.as_ref().trim(),
                     false => c.as_ref(),
                 };
@@ -261,7 +282,9 @@ impl<'a> TemplateRef<'a> {
                     Ok(quote! {})
                 }
             }
-            Item::Expr(Expr::Expr(expr)) => Ok(quote! { ::core::write!(#writer, "{}", ::stilts::escaping::Escaped::new(&#expr, #escaper))?; }),
+            Item::Expr(Expr::Expr(expr)) => Ok(
+                quote! { ::core::write!(#writer, "{}", ::stilts::escaping::Escaped::new(&#expr, #escaper))?; },
+            ),
             Item::Expr(Expr::Stmt(stmt)) => Ok(quote! { #stmt }),
             Item::Expr(Expr::For(for_expr)) => {
                 let label = &for_expr.label;
@@ -332,8 +355,9 @@ impl<'a> TemplateRef<'a> {
             }
             Item::Expr(Expr::Include(include_expr)) => {
                 let attrs = TemplateAttrs {
-                    path: syn::LitStr::new(&include_expr.includes.value(), proc_macro2::Span::call_site()),
+                    source: TemplateSource::new_file(include_expr.includes.value()),
                     escape: self.escape_override.clone(),
+                    trim: self.trim_override,
                 };
                 let graph = Graph::load(cfg, &attrs)?;
                 graph.expand(cfg)
@@ -367,21 +391,38 @@ impl<'a> std::ops::Deref for TemplateRef<'a> {
 
 #[derive(Debug)]
 struct TemplateNode {
-    path: Utf8PathBuf,
+    data: TemplateData,
     escape_override: Option<syn::Path>,
+    trim_override: Option<bool>,
     blocks: HashMap<syn::Ident, BlockExpr<'static>>,
     root: Root<'static>,
+}
+
+#[derive(Debug, PartialEq, Eq, Hash)]
+struct TemplateData {
+    path: Option<Utf8PathBuf>,
+    content: String,
 }
 
 fn relative_to(config: &Config, path: &Utf8PathBuf) -> String {
     path.as_str().replace(config.template_dir.as_str(), "")
 }
 
-fn read_template(config: &Config, file: &str) -> syn::Result<(Utf8PathBuf, String)> {
-    let path = config.template_dir.join(file);
-    std::fs::read_to_string(&path)
-        .map_err(|io| err!(format!("{io} while reading {}", path.clone())))
-        .map(|c| (path, c))
+fn read_template(config: &Config, source: &TemplateSource) -> syn::Result<TemplateData> {
+    match source {
+        TemplateSource::File(path) => {
+            let path = config.template_dir.join(&path.value());
+            Ok(TemplateData {
+                content: std::fs::read_to_string(&path)
+                    .map_err(|io| err!(format!("{io} while reading {}", path.clone())))?,
+                path: Some(path),
+            })
+        }
+        TemplateSource::Literal(content) => Ok(TemplateData {
+            path: None,
+            content: content.value(),
+        }),
+    }
 }
 
 pub fn template(input: TemplateInput) -> syn::Result<TokenStream> {
@@ -405,11 +446,29 @@ pub fn template(input: TemplateInput) -> syn::Result<TokenStream> {
     #[allow(unused_mut)]
     let mut integrations = TokenStream::new();
     #[cfg(feature = "actix-web")]
-    integrations.extend(crate::integrations::actix_web::expand_integration(&attrs.path.value(), ident, &impl_gen, &type_gen, &where_clause));
+    integrations.extend(crate::integrations::actix_web::expand_integration(
+        &attrs.source,
+        ident,
+        &impl_gen,
+        &type_gen,
+        &where_clause,
+    ));
     #[cfg(feature = "axum")]
-    integrations.extend(crate::integrations::axum::expand_integration(&attrs.path.value(), ident, &impl_gen, &type_gen, &where_clause));
+    integrations.extend(crate::integrations::axum::expand_integration(
+        &attrs.source,
+        ident,
+        &impl_gen,
+        &type_gen,
+        &where_clause,
+    ));
     #[cfg(feature = "gotham")]
-    integrations.extend(crate::integrations::gotham::expand_integration(&attrs.path.value(), ident, &impl_gen, &type_gen, &where_clause));
+    integrations.extend(crate::integrations::gotham::expand_integration(
+        &attrs.source,
+        ident,
+        &impl_gen,
+        &type_gen,
+        &where_clause,
+    ));
 
     Ok(quote! {
         #integrations

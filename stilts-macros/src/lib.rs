@@ -5,9 +5,9 @@
 use parse::TemplateInput;
 use proc_macro::TokenStream;
 
-mod integrations;
 mod config;
 mod expand;
+mod integrations;
 mod parse;
 mod pathing;
 

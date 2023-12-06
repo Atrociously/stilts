@@ -1,5 +1,6 @@
+use proc_macro2::Span;
 use syn::{spanned::Spanned, Data, DeriveInput};
-use syn::{Attribute, Generics, Ident, LitStr, Path};
+use syn::{Attribute, Generics, Ident, LitBool, LitStr, Path};
 
 use crate::{err, ATTR_NAME};
 
@@ -29,9 +30,30 @@ impl TemplateInput {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum TemplateSource {
+    Literal(LitStr),
+    File(LitStr),
+}
+
+impl TemplateSource {
+    pub fn new_file(path: impl AsRef<str>) -> Self {
+        Self::File(LitStr::new(path.as_ref(), Span::call_site()))
+    }
+
+    #[allow(dead_code)] // This is used in feature gated integrations
+    pub fn as_path(&self) -> Option<String> {
+        match self {
+            Self::File(value) => Some(value.value()),
+            _ => None,
+        }
+    }
+}
+
 pub struct TemplateAttrs {
-    pub path: LitStr,
+    pub source: TemplateSource,
     pub escape: Option<Path>,
+    pub trim: Option<bool>,
 }
 
 impl TemplateAttrs {
@@ -40,28 +62,41 @@ impl TemplateAttrs {
             .into_iter()
             .filter(|attr| attr.path().is_ident(ATTR_NAME));
 
-        let mut path = None;
+        let mut source = None;
         let mut escape = None;
+        let mut trim = None;
 
         for attr in attrs {
             attr.parse_nested_meta(|meta| {
                 if meta.path.is_ident("path") {
                     let value = meta.value()?;
                     let value: LitStr = value.parse()?;
-                    path = Some(value);
+                    source = Some(TemplateSource::File(value));
+                }
+                if meta.path.is_ident("content") {
+                    let value = meta.value()?;
+                    let value: LitStr = value.parse()?;
+                    source = Some(TemplateSource::Literal(value));
                 }
                 if meta.path.is_ident("escape") {
                     let value = meta.value()?;
                     let value: Path = value.parse()?;
                     escape = Some(value);
                 }
+                if meta.path.is_ident("trim") {
+                    let value = meta.value()?;
+                    let value: LitBool = value.parse()?;
+                    trim = Some(value.value)
+                }
                 Ok(())
             })?;
         }
 
+        let source = source.ok_or_else(|| err!(r#"templates require a `path` or `content` attribute to find the template file e.g. `#[stilts(path = "index.html")]`"#))?;
         Ok(Self {
-            path: path.ok_or_else(|| err!(r#"templates require a `path` attribute to find the template file e.g. `#[stilts(path = "index.html")]`"#))?,
+            source,
             escape,
+            trim,
         })
     }
 }
