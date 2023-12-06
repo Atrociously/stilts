@@ -4,7 +4,6 @@ use crate::escaping::MarkedSafe;
 
 /// An extension for types that implement [`Display`]
 pub trait DisplayExt {
-
     /// Mark the value as safe from escaping
     fn safe(&self) -> MarkedSafe<'_, Self>;
 

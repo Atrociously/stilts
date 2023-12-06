@@ -25,7 +25,11 @@ pub struct Escaped<'a, T: ?Sized, E = Empty> {
 /// For an implementation of this trait see [`Html`] which uses [`html_escape`]
 pub trait Escaper {
     /// Write the escaped contents of `T` to the formatter
-    fn fmt<T: Display + ?Sized>(&self, value: &T, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
+    fn fmt<T: Display + ?Sized>(
+        &self,
+        value: &T,
+        f: &mut std::fmt::Formatter<'_>,
+    ) -> std::fmt::Result;
 }
 
 impl<T, E> Escaped<'_, T, E>
@@ -36,10 +40,7 @@ where
     /// Create a new escaped value, this is mostly used by the stilts code generator
     #[inline]
     pub fn new(value: &T, escaper: E) -> Escaped<'_, T, E> {
-        Escaped {
-            value,
-            escaper,
-        }
+        Escaped { value, escaper }
     }
 }
 
@@ -69,13 +70,21 @@ pub struct Empty;
 pub struct Html;
 
 impl Escaper for Empty {
-    fn fmt<T: Display + ?Sized>(&self, value: &T, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt<T: Display + ?Sized>(
+        &self,
+        value: &T,
+        f: &mut std::fmt::Formatter<'_>,
+    ) -> std::fmt::Result {
         value.fmt(f)
     }
 }
 
 impl Escaper for Html {
-    fn fmt<T: Display + ?Sized>(&self, value: &T, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt<T: Display + ?Sized>(
+        &self,
+        value: &T,
+        f: &mut std::fmt::Formatter<'_>,
+    ) -> std::fmt::Result {
         let value = value.to_string();
         let res = html_escape::encode_safe(&value);
         f.write_str(&res)

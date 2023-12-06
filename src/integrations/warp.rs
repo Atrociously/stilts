@@ -1,6 +1,6 @@
+use warp::http::header;
 use warp::http::Response;
 use warp::hyper::StatusCode;
-use warp::http::header;
 
 use crate::Template;
 
@@ -15,6 +15,7 @@ pub fn reply_template<T: Template>(t: &T) -> warp::reply::Response {
             .body(content.into()),
         Err(_) => Response::builder()
             .status(StatusCode::INTERNAL_SERVER_ERROR)
-            .body("Error Rendering Template this is likely a bug in stilts".into())
-    }.unwrap()
+            .body("Error Rendering Template this is likely a bug in stilts".into()),
+    }
+    .unwrap()
 }

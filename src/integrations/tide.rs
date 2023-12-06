@@ -10,6 +10,6 @@ pub fn render_template<T: Template>(t: &T) -> tide::Response {
             .build(),
         Err(_) => tide::Response::builder(tide::StatusCode::InternalServerError)
             .body("Error Rendering Template this is likely a bug in stilts")
-            .build()
+            .build(),
     }
 }
