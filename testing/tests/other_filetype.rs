@@ -15,7 +15,11 @@ struct OverrideTemplate {
 struct CustomEscaper;
 
 impl stilts::escaping::Escaper for CustomEscaper {
-    fn fmt<T: std::fmt::Display + ?Sized>(&self, _value: &T, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt<T: std::fmt::Display + ?Sized>(
+        &self,
+        _value: &T,
+        f: &mut std::fmt::Formatter<'_>,
+    ) -> std::fmt::Result {
         f.write_str("CUSTOM")
     }
 }
@@ -28,7 +32,9 @@ fn ensure_escapes() {
 
     let val = OtherTypeTemplate {
         my_rust_val: "Hello, World!".to_string(),
-    }.render().unwrap();
+    }
+    .render()
+    .unwrap();
 
     assert_eq!(val, EXPECTED);
 }
@@ -41,7 +47,9 @@ fn ensure_override() {
 
     let val = OverrideTemplate {
         my_rust_val: "Hello, World!".to_string(),
-    }.render().unwrap();
+    }
+    .render()
+    .unwrap();
 
     assert_eq!(val, EXPECTED);
 }

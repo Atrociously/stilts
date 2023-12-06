@@ -8,6 +8,12 @@ struct MyTemplate<'a> {
     a: &'a str,
 }
 
+#[derive(Template)]
+#[stilts(content = "Literal {% a %} Template", trim = false)]
+struct LitTemplate<'a> {
+    a: &'a str,
+}
+
 #[test]
 fn ensure_matches() {
     const EXPECTED: &str = r###"<!DOCTYPE html>
@@ -21,7 +27,18 @@ fn ensure_matches() {
 
     let val = MyTemplate {
         a: "my code content <a></a>",
-    }.render().unwrap();
+    }
+    .render()
+    .unwrap();
+
+    assert_eq!(val, EXPECTED);
+}
+
+#[test]
+fn ensure_lit_matches() {
+    const EXPECTED: &str = "Literal cool Template";
+
+    let val = LitTemplate { a: "cool" }.render().unwrap();
 
     assert_eq!(val, EXPECTED);
 }

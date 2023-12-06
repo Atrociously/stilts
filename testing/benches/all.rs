@@ -1,16 +1,7 @@
-#[macro_use]
-extern crate criterion;
-
 use stilts::Template;
-use criterion::Criterion;
-use criterion::Bencher;
 
-criterion_main!(benches);
-criterion_group!(benches, all_benches);
-
-fn all_benches(c: &mut Criterion) {
-    c.bench_function("Big Table", |b| big_table(b, 100));
-    c.bench_function("Teams", teams);
+fn main() {
+    divan::main();
 }
 
 #[derive(Template)]
@@ -31,20 +22,24 @@ struct Team {
     score: u8,
 }
 
-fn big_table(b: &mut Bencher, size: usize) {
-    let mut table = Vec::with_capacity(size);
-    for _ in 0..size {
-        let mut inner = Vec::with_capacity(size);
-        for i in 0..size {
+const SIZES: &[usize] = &[1, 2, 8, 16, 32, 64, 128, 256, 512, 1024];
+
+#[divan::bench(consts = SIZES)]
+fn big_table<const SIZE: usize>(b: divan::Bencher) {
+    let mut table = Vec::with_capacity(SIZE);
+    for _ in 0..SIZE {
+        let mut inner = Vec::with_capacity(SIZE);
+        for i in 0..SIZE {
             inner.push(i);
         }
         table.push(inner);
     }
     let ctx = BigTable { table };
-    b.iter(|| ctx.render().unwrap());
+    b.bench_local(|| ctx.render().unwrap());
 }
 
-fn teams(b: &mut Bencher) {
+#[divan::bench]
+fn teams(b: divan::Bencher) {
     let teams = Teams {
         year: 2015,
         teams: vec![
@@ -66,5 +61,5 @@ fn teams(b: &mut Bencher) {
             },
         ],
     };
-    b.iter(|| teams.render().unwrap());
+    b.bench_local(|| teams.render().unwrap());
 }

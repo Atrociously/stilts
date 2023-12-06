@@ -17,7 +17,7 @@ stilts = { path = "../" }
 
 [dev-dependencies]
 stilts = { path = "../", features = ["err-fancy"]}
-criterion = "0.5.1"
+divan = "0.1.5"
 
 [[bench]]
 name = "all"
