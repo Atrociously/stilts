@@ -1,6 +1,6 @@
 [package]
 name = "stilts"
-version = "0.2.1"
+version = "0.2.2"
 description = "A compiled templating language with rust syntax"
 edition = "2021"
 authors = ["Jack <notatrocious@gmail.com>"]
