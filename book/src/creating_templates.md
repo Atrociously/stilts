@@ -20,6 +20,16 @@ This will generate a trait implementation for the struct `Example`.
 `stilts()` is an attribute for the derive macro, and is used to
 specify the path of the template.
 
+You can also define templates directly in code without referencing
+the template directory by using the `content` attribute. For example:
+```rust
+#[derive(Template)]
+#[stilts(content = "My {% data %} Template")]
+struct InlineTemplate {
+    data: String
+}
+```
+
 Stilts now implements opt-out escaping and as such presents an
 option for the macro to override the escaping implementation.
 

@@ -1,12 +1,12 @@
-//! Stilts is a rust-centric type safe template engine. It allows the users to 
+//! Stilts is a rust-centric type safe template engine. It allows the users to
 //! create templates with arbitrary rust code within them, with a Jinja-like syntax.
 //! For more in depth documentation on the language check out the [book](https://atrociously.github.io/stilts/).
 //!
-//! It works using a derive macro that outputs template rendering code for the 
+//! It works using a derive macro that outputs template rendering code for the
 //! rust compiler to type check.
-//! 
+//!
 //! ## Example
-//! By default stilts looks for templates in the `$CARGO_MANIFEST_DIR/templates directory`
+//! By default stilts looks for templates in the `$CARGO_MANIFEST_DIR/templates` directory
 //! this setting can be changed in the configuration.
 //!
 //! Defining a template:
@@ -57,10 +57,13 @@ pub use extensions::{DebugExt, DisplayExt, SerializeExt};
 ///
 /// The macro will derive an implementation of the [`Template`](trait@Template) trait
 /// that executes the code within the template and renders it properly.
-/// 
+///
 /// ## Attribute options
-/// - **path** (required): The path relative to the template root of the template to render
+/// Either **path** or **content** must be specified
+/// - **path**: The path relative to the template root of the template to render
+/// - **content**: The direct contents of the template provided by a string literal
 /// - **escape**: Override the escaper detected by file extension with a specified one
+/// - **trim**: Override the trim behavior defined in your config
 ///
 /// ## Examples:
 /// Standard use case
@@ -71,11 +74,22 @@ pub use extensions::{DebugExt, DisplayExt, SerializeExt};
 ///     my_data: String,
 /// }
 /// ```
-/// 
-/// An example of setting the escape to something else
-/// ```ignore
+///
+/// Using content instead of path
+/// ```
+/// # use stilts::Template;
 /// #[derive(Template)]
-/// #[stilts(path = "index.html", escape = ::stilts::escaping::Empty)]
+/// #[stilts(content = "My {% data %} Template")]
+/// struct MyInlineTemplate {
+///     data: String,
+/// }
+/// ```
+///
+/// An example of setting the trim and escape to something else
+/// ```
+/// # use stilts::Template;
+/// #[derive(Template)]
+/// #[stilts(content = "Templates are fun", trim = false, escape = ::stilts::escaping::Empty)]
 /// struct MyOverridenTemplate {
 ///     my_data: String,
 /// }
@@ -86,7 +100,6 @@ pub use stilts_macros::Template;
 mod integrations;
 #[cfg(any(feature = "warp", feature = "tide"))]
 pub use integrations::*;
-
 
 pub mod escaping;
 mod extensions;
