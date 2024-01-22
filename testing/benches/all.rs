@@ -24,12 +24,12 @@ struct Team {
 
 const SIZES: &[usize] = &[1, 2, 8, 16, 32, 64, 128, 256, 512, 1024];
 
-#[divan::bench(consts = SIZES)]
-fn big_table<const SIZE: usize>(b: divan::Bencher) {
-    let mut table = Vec::with_capacity(SIZE);
-    for _ in 0..SIZE {
-        let mut inner = Vec::with_capacity(SIZE);
-        for i in 0..SIZE {
+#[divan::bench(args = SIZES)]
+fn big_table(b: divan::Bencher, size: usize) {
+    let mut table = Vec::with_capacity(size);
+    for _ in 0..size {
+        let mut inner = Vec::with_capacity(size);
+        for i in 0..size {
             inner.push(i);
         }
         table.push(inner);
