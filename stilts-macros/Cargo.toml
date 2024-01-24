@@ -1,6 +1,6 @@
 [package]
 name = "stilts-macros"
-version = "0.2.1"
+version = "0.2.2"
 description = "The macros that generate the templates for stilts"
 edition = "2021"
 license = "MIT"
@@ -22,7 +22,7 @@ proc-macro2 = "1"
 quote = "1"
 
 # parser for the stilts language
-stilts-lang = { path = "../stilts-lang", version = "0.2" }
+stilts-lang = { path = "../stilts-lang", version = "0.2.0" }
 
 # libraries to enable certain useful features
 serde = { version = "1", features = ["derive"] }

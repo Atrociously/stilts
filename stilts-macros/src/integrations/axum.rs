@@ -21,7 +21,7 @@ pub fn expand_integration(
                         ::axum::response::Response::builder()
                             .status(200)
                             .header(::axum::http::header::CONTENT_TYPE, ::axum::http::HeaderValue::from_static(#mime))
-                            .body(::axum::body::boxed(content))
+                            .body(::axum::body::Body::new(content))
                             .unwrap()
                     }
                     Err(_) => ::axum::response::IntoResponse::into_response(::axum::http::StatusCode::INTERNAL_SERVER_ERROR),
