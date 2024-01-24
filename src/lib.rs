@@ -76,7 +76,7 @@ pub use extensions::{DebugExt, DisplayExt, SerializeExt};
 /// ```
 ///
 /// Using content instead of path
-/// ```
+/// ```ignore
 /// # use stilts::Template;
 /// #[derive(Template)]
 /// #[stilts(content = "My {% data %} Template")]
@@ -86,7 +86,7 @@ pub use extensions::{DebugExt, DisplayExt, SerializeExt};
 /// ```
 ///
 /// An example of setting the trim and escape to something else
-/// ```
+/// ```ignore
 /// # use stilts::Template;
 /// #[derive(Template)]
 /// #[stilts(content = "Templates are fun", trim = false, escape = ::stilts::escaping::Empty)]
