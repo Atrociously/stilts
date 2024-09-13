@@ -1,26 +1,106 @@
 # Stilts
 
-Stilts the rust centric compile time type safe templating engine.
+Stilts is a templating engine and language that provides compile time correctness guarantees.
 
-Stilts is a templating language inspired by [Askama](https://github.com/djc/askama).
-It is still loosly related to [Jinja](https://jinja.palletsprojects.com), however it
-has departed significantly in some ways due to the focus on rust as a language.
+## About This "Book"
 
-This project is very early on, I just started it because I liked askama but I felt that
-it could be improved by allowing a more rust specific syntax in the template expressions.
-If you have suggestions, features, questions, or anything else please feel free to open
-an issue. I could especially use extra help writing tests for stuff, and am open to working
-with other people to get that done.
+This documentation is here to help programmers take full advantage of all of the features
+that Stilts provides. Stilts will be the only focus of this documentation, if explanation
+of something falls out of the purview of the Stilts templating engine this document should
+link to a proper explanation of that topic. The goal of this is to keep this book simple
+and straightforward to read, there should be little to no fluff outside of this page.
 
-I also got some of the project organization structure from looking at the Askama git.
-Seriously go check out Askama, it is an amazing project and more mature than Stilts.
+### Assumtions About You, The Reader
+- Knows what a [template engine](https://en.wikipedia.org/wiki/Template_processor) is
+- Familiar with [Rust](https://www.rust-lang.org/)
+  - If you aren't I would recommend reading [the book](https://doc.rust-lang.org/book/)
 
-While the primary use case for Stilts is in html templates for websites, there are no rules
-stating that you can't use it for general templating purposes. However, because html is it's
-primary target use case it includes some html specific features. For instance stilts includes
-an opt-out html escaping mechanism that works on files with a detected mime type of html. This
-can be configured via a [config](./configuration.md) option, or directly within the macro attributes.
+## Quick Sample
 
-One more thing, while reading through the documentation please consider giving me feedback on ways to
-improve it. This is the first time I have written serious documentation for library code that is
-more than an internal or personal system.
+Here is a quick sample of some Stilts template and construction.
+
+### template.html
+```html
+<div>
+    {% for user in users %}
+    <a href="{% user.profile.safe() %}">{% user.name %}</a>
+    {% end %}
+</div>
+```
+
+### template.rs
+```rust
+use stilts::Template;
+
+#[derive(Template)]
+#[stilts(path = "template.html")]
+struct QuickExample {
+    users: Vec<User>,
+}
+
+struct User {
+    profile: Url,
+    name: String,
+}
+```
+
+## Use Cases
+
+Stilts is primarily designed for templating html in web projects and has default settings
+configured to cater to that use case. However it certainly can be used and modified to
+serve any kind of templating purpose. As with any tool or library the design decisions
+made in Stilts require making certain tradeoffs.
+
+Stilts is designed for use in systems where templates are tightly coupled with code.
+The most common case is web design, but there are other cases where this tight coupling
+can be useful. For instance a project which generates some generic code based on a few
+parameters. If the code generated follows a specific rigid structure and is tweaked
+by some inputs, then Stilts can work well for that.
+
+### Benefits
+
+1. **Compile time guarantees**
+   - Stilts generates rust code based off of the templates you write which
+     is then ran through the rust compiler meaning you maintain all the guarantees
+     provided by the rust compiler.
+2. **Pure rust inside templates**
+   - Stilts is focused on making development in rust as simple and flexible as possible.
+     Therefore you are able to write arbitrary rust code anywhere inside your templates.
+3. **Performant render times**
+   - This while not a primary focus of the Stilts engine is a nice benefit you
+     get when most of the work is done at compile time.
+
+### Drawbacks
+
+1. **No creation of templates on the fly at runtime**
+   - This can be a big downside for many potential use cases. Many tools need to apply
+     template rules to arbitrary text that is recieved at runtime, which Stilts
+     simply cannot do due to it's very nature.
+2. **Longer iteration times**
+   - Iteration is important especially when working with UI/UX, so impairing
+     iteration times can be a big problem for some people. Stilts impairs iteration
+     times by forcing your entire application to recompile when minor template changes
+     need to be made. This effect can however be [reduced](./iterating_reccomendation.md).
+3. **Cross Language support**
+   - Stilts is as rust first and only system. Similar projects could be made for other
+     languages, but they would not follow the syntax or rules that rust enforces.
+     As such if you are looking for a templating engine that can be used across multiple
+     programming languages Stilts cannot fill that role. Look at something like
+     [Jinja2](https://jinja.palletsprojects.com) 
+     which has implementations in many languages with consistent syntax.
+
+Stilts cannot perform runtime template creation / parsing, if you need that
+you should look for some other engines [here](https://www.arewewebyet.org/topics/templating/).
+Some notable runtime engines would include Tera, Handlebars, Liquid, and Minijinja.
+
+## Important Mentions
+The Stilts templating engine takes major inspiration from
+[Askama](https://github.com/djc/askama). Askama is an older
+library with more history and support behind it, which Stilts cannot claim to have.
+However Stilts provides features that I believe are worth the change.
+
+It took a lot of research on procedural macros to figure out
+how to get this to work so big thanks to these resources.
+- [Proc Macro Workshop](https://github.com/dtolnay/proc-macro-workshop)
+- [Rust Reference](https://doc.rust-lang.org/reference/procedural-macros.html)
+- [Syn Documentation](https://docs.rs/syn/latest/syn/)

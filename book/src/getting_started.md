@@ -1,41 +1,46 @@
 # Getting Started
 
-Make sure to add `stilts` to your dependencies
+To get started with Stilts you will need to add the dependency to
+your project either with `cargo add stilts` or editing your `Cargo.toml`.
 
-```toml
-[dependencies]
-stilts = "0.2.0"
-```
+## Your first template
 
-By default your project templates will be searched
-for in a directory named `templates` in your crate root.
+By default Stilts looks for template files in a directory named `templates`
+relative to your project root. This can be [configured](./configuration.md)
+if that is not your desired behavior.
 
+1. Create a file in the `templates` directory named `example.txt`.
+2. Write the following into `templates/example.txt`
+   ```html
+   Hello from {% name %}!
+   ```
+   The usage of the `{%` and `%}` delimiters are how we can interact with the
+   Stilts engine. There are many more uses for them but in this instance we are
+   telling Stilts to *render* the variable `name` into the spot where this is invoked.
+3. In your rust project `main.rs` write the following
+   ```rust
+   use stilts::Template;
 
-### Your first template
-In the `templates` directory create a file and name it anything you like
-but I will use `index.html`
+   // In Stilts templates are defined on structs
+   // the fields on said structs are then the parameters
+   // that are available to the template when rendering
+   #[derive(Template)]
+   #[stilts(path = "example.txt")] // notice I don't specify templates/example.txt
+   struct MyFirstTemplate {
+       // This is the name variable referenced in example.txt
+       name: &'static str,
+   }
 
-```html
-Hello {% name %}!
-```
+   fn main() {
+       // construct an instance of the template with specified arguments
+       let template = MyFirstTemplate { name: "Stilts" };
+       // render the template into a string
+       let output = template.render().unwrap();
+       assert_eq!(output, "Hello from Stilts!".to_string());
+   }
+   ```
 
-Then in your crate add the following rust code
-
-```rust
-use stilts::Template;
-
-#[derive(Template)]
-#[stilts(path = "index.html")] // replace with the name of your file if you changed it
-struct MyFirstTemplate<'a> { // The struct name does not matter and can have generics
-    name: &'a str, // fields on this struct can be used in your template
-}
-
-fn main() {
-    let template = MyFirstTemplate {
-        name: "World"
-    }; // create a new instance of your template
-    println!("{}", template.render().unwrap()); // render your template
-}
-```
-
-This code should compile and run
+   The comments in the code highlights a few important details, but it is worthwhile to
+   go into a little more depth. The struct field `name` is the variable referenced by
+   the template itself. This is the mechanism by which you inject data into the template
+   at runtime. You can add as many fields of any type you wish to the struct.
