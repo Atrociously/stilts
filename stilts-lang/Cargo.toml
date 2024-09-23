@@ -1,7 +1,9 @@
 [package]
 name = "stilts-lang"
+description = "The parser for stilts"
 version = "0.3.0"
 edition = "2021"
+license = "MIT"
 
 [features]
 extra-traits = ["syn/extra-traits"]
