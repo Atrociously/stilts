@@ -1,479 +1,369 @@
-//! The implementation of the parsing in this crate is meant to mostly be
-//! unimportant to the utility of the crate. Therfore it may significantly change
-//! if there are better ways to do it.
-use std::marker::PhantomData;
+use std::borrow::Cow;
+use std::sync::LazyLock;
 
-use crate::{ErrFlow, Error, LResult, Located, ParseErr};
+use aho_corasick::AhoCorasick;
+use winnow::ascii::{multispace0, space0, space1, take_escaped};
+use winnow::combinator::{alt, cut_err, eof, opt, peek, preceded, repeat, repeat_till, terminated, trace};
+use winnow::error::ParserError;
+use winnow::stream::{AsChar, Compare, Stream, StreamIsPartial};
+use winnow::token::{any, none_of, one_of, take, take_until, take_while};
+use winnow::Parser;
 
-/// A generalized trait for defining a parser
-///
-/// I took inspiration from both nom and winnow
-pub trait Parser<'i, T, E = Error<'i>>
+use crate::error::{expect_end, At, Msg};
+use crate::state::State;
+use crate::types::{
+    Expr, ForExpr, IfBranch, Item, ItemBlock, ItemFor, ItemIf, ItemMacro, ItemMatch,
+    MacroCallExpr, MacroExpr, MatchArm, MatchArmExpr, Root,
+};
+use crate::{state::Delims, Input};
+use crate::{Error, Located};
+
+type PResult<'i, T> = winnow::PResult<T, Error<'i>>;
+
+pub fn root<'i>(delims: &Delims) -> impl FnMut(&mut Input<'i>) -> PResult<'i, Root<'i>> {
+    let delims = delims.clone();
+    move |input| {
+        let mut first = opt(preceded(multispace0, item(&delims))).parse_next(input)?;
+        input.state &= !State::ALLOW_EXTEND; // Do not allow extend after first item!
+        
+        let mut content = repeat(0.., item(&delims))
+            .fold(move || first.take().map(|v| vec![v]).unwrap_or_default(), |mut acc, item| {
+                acc.push(item);
+                acc
+            })
+            .parse_next(input)?;
+        if let Some(final_content) = opt(repeat_till(1.., any, eof).map(|((), _)| ()).take()).parse_next(input)? {
+            content.push(Item::Content(final_content.content().into()));
+        }
+        Ok(Root { content })
+    }
+}
+
+pub fn item<'i>(delims: &Delims) -> impl Parser<Input<'i>, Item<'i>, Error<'i>> {
+    trace(
+        "item",
+        alt((
+            item_expr(delims).map(Item::Expr),
+            item_block(delims).map(Item::Block),
+            item_for(delims).map(Item::For),
+            item_if(delims).map(Item::If),
+            item_match(delims).map(Item::Match),
+            item_macro(delims).map(Item::Macro),
+            item_content(delims).map(Item::Content),
+        )),
+    )
+}
+
+pub fn item_content<'i>(
+    delims: &Delims,
+) -> impl Parser<Input<'i>, Cow<'i, str>, Error<'i>> {
+    let delims = delims.clone();
+    move |input: &mut Input<'i>| {
+        trace(
+            "content",
+            take_until(1.., delims.open())
+                .map(|l: Located<'_>| Cow::Borrowed(l.content())),
+        )
+        .parse_next(input)
+    }
+}
+
+pub fn item_block<'i>(delims: &Delims) -> impl Parser<Input<'i>, ItemBlock<'i>, Error<'i>> {
+    let delims = delims.clone();
+    trace("block", move |input: &mut Input<'i>| {
+        let (name, span) = delimited(
+            &delims,
+            preceded(("block", cut_err(space1)), cut_err(ident)),
+        )
+        .with_taken()
+        .context(Msg("unable to parse block expression"))
+        .context(At(input.here()))
+        .parse_next(input)?;
+
+        let saved = input.state;
+        input.state |= State::ALLOW_SUPERCALL;
+        //input.state &= !State::ALLOW_BLOCK;
+
+        let content = cut_err(items_till(&delims, end(&delims)))
+            .map(|v| v.0)
+            .parse_next(input)
+            .map_err(expect_end(span))?;
+        input.state = saved;
+        Ok(ItemBlock {
+            name: Cow::Borrowed(name.content()),
+            content,
+        })
+    })
+}
+
+pub fn item_for<'i>(delims: &Delims) -> impl Parser<Input<'i>, ItemFor<'i>, Error<'i>> {
+    let delims = delims.clone();
+    trace("for", move |input: &mut _| {
+        let (open, span) = delimited(
+            &delims,
+            preceded(peek(("for", space1)), cut_err(parse_syn::<ForExpr>)),
+        )
+        .with_taken()
+        .parse_next(input)?;
+
+        let content = cut_err(items_till(&delims, end(&delims)))
+            .map(|v| v.0)
+            .parse_next(input)
+            .map_err(expect_end(span))?;
+        Ok(ItemFor {
+            label: open.label,
+            pat: open.pat,
+            expr: open.expr,
+            content,
+        })
+    })
+}
+
+pub fn item_if<'i>(delims: &Delims) -> impl Parser<Input<'i>, ItemIf<'i>, Error<'i>> {
+    let delims = delims.clone();
+    trace("if", move |input: &mut _| {
+        let (cond, span) = delimited(
+            &delims,
+            preceded(("if", space1), cut_err(parse_syn::<syn::Expr>)),
+        )
+        .with_taken()
+        .parse_next(input)?;
+        let (content, branch) = items_till(&delims, if_branch(&delims))
+            .parse_next(input)
+            .map_err(expect_end(span))?;
+        Ok(ItemIf {
+            cond,
+            content,
+            branch,
+        })
+    })
+}
+
+fn if_branch<'i>(delims: &Delims) -> impl Parser<Input<'i>, IfBranch<'i>, Error<'i>> {
+    let delims1 = delims.clone();
+    let delims2 = delims.clone();
+    trace(
+        "branch",
+        alt((
+            move |input: &mut _| {
+                let (cond, span) = delimited(
+                    &delims1,
+                    preceded(("else", space1, "if", space1), cut_err(parse_syn)),
+                )
+                .with_taken()
+                .parse_next(input)?;
+                let (content, branch) = items_till(&delims1, if_branch(&delims1))
+                    .parse_next(input)
+                    .map_err(expect_end(span))?;
+                Ok(IfBranch::ElseIf {
+                    cond,
+                    content,
+                    branch: Box::new(branch),
+                })
+            },
+            move |input: &mut _| {
+                let span = delimited(&delims2, ("else", space0))
+                    .take()
+                    .parse_next(input)?;
+                let content = items_till(&delims2, end(&delims2))
+                    .map(|v| v.0)
+                    .parse_next(input)
+                    .map_err(expect_end(span))?;
+                Ok(IfBranch::Else { content })
+            },
+            end(delims).map(|_| IfBranch::End),
+        )),
+    )
+}
+
+pub fn item_match<'i>(delims: &Delims) -> impl Parser<Input<'i>, ItemMatch<'i>, Error<'i>> {
+    let delims = delims.clone();
+    trace("match", move |input: &mut _| {
+        let delims2 = delims.clone();
+        let (expr, span) = terminated(
+            delimited(&delims, preceded(("match", space1), cut_err(parse_syn))),
+            multispace0,
+        )
+        .with_taken()
+        .parse_next(input)?;
+        let arms = repeat_till(
+            0..,
+            trace("arm", move |input: &mut _| {
+                let (arm, span) = delimited(
+                    &delims2,
+                    preceded(("when", space1), cut_err(parse_syn::<MatchArmExpr>)),
+                )
+                .with_taken()
+                .parse_next(input)?;
+
+                let content = items_till(
+                    &delims2,
+                    peek(alt((match_arm_test(&delims2), end(&delims2)))),
+                )
+                .map(|v| v.0)
+                .parse_next(input)
+                .map_err(expect_end(span))?;
+                Ok(MatchArm {
+                    pat: arm.pat,
+                    guard: arm.guard.map(|v| v.1),
+                    content,
+                })
+            }),
+            end(&delims),
+        )
+        .map(|(arms, _)| arms)
+        .parse_next(input)
+        .map_err(expect_end(span))?;
+        Ok(ItemMatch { expr, arms })
+    })
+}
+
+fn match_arm_test<'i>(delims: &Delims) -> impl Parser<Input<'i>, (), Error<'i>> {
+    delimited(delims, ("when", space1)).void()
+}
+
+pub fn item_macro<'i>(delims: &Delims) -> impl Parser<Input<'i>, ItemMacro<'i>, Error<'i>> {
+    let delims = delims.clone();
+    trace(
+        "macro",
+        move |input: &mut _| {
+            let (mcr, span) = delimited(
+                &delims,
+                preceded(("macro", space1), cut_err(parse_syn::<MacroExpr>)),
+            ).with_taken().parse_next(input)?;
+            let content = items_till(&delims, end(&delims)).map(|v| v.0).parse_next(input)
+                .map_err(expect_end(span))?;
+            Ok(ItemMacro {
+                name: mcr.name,
+                args: mcr.args,
+                content
+            })
+        }
+    )
+}
+
+pub fn item_expr<'i>(delims: &Delims) -> impl Parser<Input<'i>, Expr<'i>, Error<'i>> {
+    fn expr_extends<'i>(input: &mut Located<'i>) -> PResult<'i, Cow<'i, str>> {
+        preceded(("extends", cut_err(space1)), cut_err(string_contents))
+            .context(Msg("unable to parse extends expression"))
+            .context(At(input.here()))
+            .parse_next(input)
+    }
+    fn expr_include<'i>(input: &mut Located<'i>) -> PResult<'i, Cow<'i, str>> {
+        preceded(("include", cut_err(space1)), cut_err(string_contents))
+            .context(Msg("unable to parse include expression"))
+            .context(At(input.here()))
+            .parse_next(input)
+    }
+
+    fn expr_super_call<'i>(input: &mut Located<'i>) -> PResult<'i, ()> {
+        ("super", "(", space0, ")", space0).void()
+            .parse_next(input)
+    }
+
+    fn expr_macro_call<'i>(input: &mut Located<'i>) -> PResult<'i, MacroCallExpr> {
+        preceded(("call", space1), cut_err(parse_syn)).parse_next(input)
+    }
+
+    trace("expr", delimited(
+        delims,
+        alt((
+            expr_extends.map(Expr::Extends),
+            expr_include.map(Expr::Include),
+            expr_super_call.map(|_| Expr::SuperCall),
+            expr_macro_call.map(|call| Expr::MacroCall {
+                name: call.name,
+                args: call.args,
+            }),
+            parse_syn.map(Expr::Stmt),
+            parse_syn.map(Expr::Expr),
+        )),
+    ))
+}
+
+fn parse_syn<'i, T>(input: &mut Located<'i>) -> PResult<'i, T>
 where
-    E: ParseErr<'i>,
+    T: syn::parse::Parse,
 {
-    /// Attempt to parse the input into the desired output
-    fn parse_next(&mut self, input: Located<'i>) -> LResult<'i, T, E>;
-
-    /// A more suitable public facing parsing function
-    fn parse(&mut self, input: &'i str) -> Result<T, E> {
-        let input = Located::new(input);
-
-        self.parse_next(input)
-            .map(|(_, v)| v)
-            .map_err(ErrFlow::into_err)
-    }
-
-    /// Map the successful result of one parser into something else
-    fn map<O, F>(self, f: F) -> Map<Self, F, T>
-    where
-        Self: Sized,
-        F: FnMut(T) -> O,
-    {
-        Map {
-            parser: self,
-            f,
-            _marker: PhantomData,
-        }
-    }
-
-    /// Run a function on the outputs of a parser and can be used to parse
-    /// two things in succession
-    fn and_then<O, F>(self, f: F) -> AndThen<Self, F, T>
-    where
-        Self: Sized,
-        F: FnMut(Located<'i>, T) -> LResult<'i, O, E>,
-    {
-        AndThen {
-            parser: self,
-            f,
-            _marker: PhantomData,
-        }
-    }
+    syn::parse_str(input.content()).map_err(|e| Error::from_syn(*input, e).backtrack())
 }
 
-/// A utility struct for the [`Parser::map`] function
-pub struct Map<P, F, T> {
-    parser: P,
-    f: F,
-    _marker: PhantomData<T>,
-}
-
-impl<'i, P, F, T, O, E> Parser<'i, O, E> for Map<P, F, T>
+fn items_till<'i, P, O>(
+    delims: &Delims,
+    mut terminate: P,
+) -> impl FnMut(&mut Input<'i>) -> PResult<'i, (Vec<Item<'i>>, O)>
 where
-    E: ParseErr<'i>,
-    P: Parser<'i, T, E>,
-    F: FnMut(T) -> O,
+    P: Parser<Input<'i>, O, Error<'i>>,
 {
-    fn parse_next(&mut self, input: Located<'i>) -> LResult<'i, O, E> {
-        match self.parser.parse_next(input) {
-            Ok((rem, v)) => Ok((rem, (self.f)(v))),
-            Err(e) => Err(e),
-        }
-    }
+    let delims = delims.clone();
+    move |input| repeat_till(0.., item(&delims), terminate.by_ref()).parse_next(input)
 }
 
-/// A utility struct for the [`Parser::and_then`] function
-pub struct AndThen<P, F, T> {
-    parser: P,
-    f: F,
-    _marker: PhantomData<T>,
+fn end<'i>(delims: &Delims) -> impl Parser<Input<'i>, (), Error<'i>> {
+    delimited(delims, "end".void())
 }
 
-impl<'i, P, F, T, O, E> Parser<'i, O, E> for AndThen<P, F, T>
+pub fn ident<'i, I, E>(input: &mut I) -> winnow::PResult<<I as Stream>::Slice, E>
 where
-    E: ParseErr<'i>,
-    P: Parser<'i, T, E>,
-    F: FnMut(Located<'i>, T) -> LResult<'i, O, E>,
+    I: Stream<Token = char> + StreamIsPartial + 'i,
+    E: ParserError<I>,
 {
-    fn parse_next(&mut self, input: Located<'i>) -> LResult<'i, O, E> {
-        match self.parser.parse_next(input) {
-            Ok((rem, v)) => (self.f)(rem, v),
-            Err(e) => Err(e),
-        }
-    }
+    (
+        one_of(|c: char| c.is_alpha() || c == '_'),
+        take_while(0.., |c: char| c.is_alphanum() || c == '_'),
+    )
+        .take()
+        .parse_next(input)
 }
 
-impl<'i, F, T, E> Parser<'i, T, E> for F
+pub fn string_contents<'i, I, E>(input: &mut I) -> winnow::PResult<Cow<'i, str>, E>
 where
-    E: ParseErr<'i>,
-    F: FnMut(Located<'i>) -> LResult<'i, T, E>,
+    I: Stream<Token = char> + StreamIsPartial + Compare<char> + 'i,
+    I::Slice: AsRef<Located<'i>> + Stream + StreamIsPartial + Compare<char>,
+    <I::Slice as Stream>::Token: AsChar + Copy,
+    E: ParserError<I> + ParserError<I::Slice>,
 {
-    fn parse_next(&mut self, input: Located<'i>) -> LResult<'i, T, E> {
-        self(input)
+    static AHO: LazyLock<AhoCorasick> =
+        LazyLock::new(|| AhoCorasick::new(["\\\"", "\\\\"]).unwrap());
+    const CHARS: [char; 2] = ['"', '\\'];
+    let s = preceded(
+        '"',
+        take_escaped(take(1u8).and_then(none_of(CHARS)), '\\', one_of(CHARS)),
+    )
+    .parse_next(input)?;
+
+    let value = maybe_replace(&AHO, s.as_ref().content(), &["\"", "\\"]);
+    Ok(value)
+}
+
+/// Parse some content between a pair of delimiters provided by [Delims]
+pub fn delimited<I, O, E, P>(
+    delims: &Delims,
+    mut parser: P,
+) -> impl FnMut(&mut I) -> winnow::PResult<O, E>
+where
+    I: Stream
+        + StreamIsPartial
+        + Compare<char>
+        + for<'a> Compare<&'a str>
+        + for<'a> winnow::stream::FindSlice<&'a str>,
+    I::Token: AsChar,
+    E: ParserError<I>,
+    P: Parser<<I as Stream>::Slice, O, E>,
+{
+    let delims = delims.clone();
+    move |input| {
+        (delims.open(), space0).parse_next(input)?;
+        let mut content = take_until(1.., delims.close()).parse_next(input)?;
+        delims.close().parse_next(input)?;
+        parser.parse_next(&mut content)
     }
 }
 
-/// A trait to define a type that is parseable
-pub trait Parseable<'i, E = Error<'i>>: Sized {
-    /// Attempt to parse self from the input
-    fn parse_next(input: Located<'i>) -> LResult<'i, Self, E>;
-
-    /// A better public parsing function
-    fn parse(input: &'i str) -> Result<Self, E> {
-        Self::parse_next(Located::new(input))
-            .map(|(_, v)| v)
-            .map_err(ErrFlow::into_err)
-    }
-}
-
-/// Parse the input pat as the next part of the input
-pub fn tag<'i, E: ParseErr<'i>>(
-    pat: impl AsRef<str> + 'i,
-) -> impl FnMut(Located<'i>) -> LResult<'i, Located<'i>, E> + 'i {
-    move |input: Located<'i>| {
-        let pat = pat.as_ref();
-        let pat_len = pat.len();
-
-        match input.try_slice(..pat_len) {
-            Some(next) if next.as_ref() == pat => Ok((input.slice(pat_len..), next)),
-            Some(next) => Err(ErrFlow::Backtrack(E::new("unexpected value").span(next))),
-            None => Err(ErrFlow::Incomplete(
-                E::new("unexpected eof").span(input.slice(..0)),
-            )),
-        }
-    }
-}
-
-/// Parse an optional amount of whitespace
-pub fn whitespace0<'i, E: ParseErr<'i>>(input: Located<'i>) -> LResult<'i, (), E> {
-    let offset = input
-        .chars()
-        .enumerate()
-        .skip_while(|(_, ch)| ch.is_whitespace())
-        .map(|(i, _)| i)
-        .next()
-        .unwrap_or(0);
-
-    Ok((input.slice(offset..), ()))
-}
-
-/// Parse at least one char of whitespace then any more that follows
-pub fn whitespace1<'i, E: ParseErr<'i>>(input: Located<'i>) -> LResult<'i, (), E> {
-    let offset = input
-        .chars()
-        .enumerate()
-        .take_while(|(_, ch)| ch.is_whitespace())
-        .map(|(i, _)| i)
-        .last()
-        .ok_or_else(|| E::new("expected whitespace").span(input.slice(..0)))
-        .map_err(ErrFlow::Backtrack)?;
-
-    Ok((input.slice(offset + 1..), ()))
-}
-
-/// Parse any next char as valid
-pub fn anychar<'i, E: ParseErr<'i>>(input: Located<'i>) -> LResult<'i, char, E> {
-    // this is mostly used in testing functions
-    input
-        .chars()
-        .next()
-        .map(|ch| (input.slice(1..), ch))
-        .ok_or(ErrFlow::Incomplete(
-            E::new("unexpected eof").span(input.slice(..0)),
-        ))
-}
-
-/// Parse the end of the file if there is still data then it will error
-pub fn eof<'i, E: ParseErr<'i>>(input: Located<'i>) -> LResult<'i, (), E> {
-    if input.chars().next().is_none() {
-        Ok((input, ()))
+fn maybe_replace<'h, B: AsRef<str>>(aho: &AhoCorasick, haystack: &'h str, replace_with: &[B]) -> Cow<'h, str> {
+    if aho.is_match(haystack) {
+        Cow::Owned(aho.replace_all(haystack, replace_with))
     } else {
-        Err(ErrFlow::Backtrack(E::new("not eof")))
-    }
-}
-
-/// Parse f many times until the g parser succeeds
-/// does not consume the input parsed by g
-pub fn many_until<'i, F, G, E: ParseErr<'i>>(
-    mut f: impl Parser<'i, F, E> + 'i,
-    mut g: impl Parser<'i, G, E> + 'i,
-) -> impl FnMut(Located<'i>) -> LResult<'i, Vec<F>, E> + 'i {
-    move |input| {
-        let mut part = input;
-        let mut items = Vec::new();
-        let mut res = g.parse_next(part);
-
-        while let Err(ErrFlow::Backtrack(_)) = res {
-            let (next, item) = f.parse_next(part)?;
-            if part.offset() == next.offset() {
-                return Err(ErrFlow::Backtrack(E::new(
-                    "infinite loop in many_until f does not increment parser position",
-                )));
-            }
-            part = next;
-            items.push(item);
-            res = g.parse_next(part);
-        }
-
-        match res {
-            Ok(_) => Ok((part, items)),
-            Err(e) => Err(e),
-        }
-    }
-}
-
-/// Parse f many times until the g parser succeeds
-/// it will consume the input that g consumes and return
-/// the value of both parsers
-pub fn many_till<'i, F, G, E: ParseErr<'i>>(
-    mut f: impl Parser<'i, F, E> + 'i,
-    mut g: impl Parser<'i, G, E> + 'i,
-) -> impl FnMut(Located<'i>) -> LResult<'i, (Vec<F>, G), E> + 'i {
-    move |input| {
-        let mut part = input;
-        let mut items = Vec::new();
-        let mut res = g.parse_next(part);
-
-        while let Err(ErrFlow::Backtrack(_)) = res {
-            let (next, item) = f.parse_next(part)?;
-            if part.offset() == next.offset() {
-                return Err(ErrFlow::Backtrack(
-                    E::new("infinite loop in many_till f does not increment parser position")
-                        .span(part.slice(..0)),
-                ));
-            }
-            part = next;
-            items.push(item);
-            res = g.parse_next(part);
-        }
-
-        match res {
-            Ok((rem, fin)) => Ok((rem, (items, fin))),
-            Err(e) => Err(e),
-        }
-    }
-}
-
-/// Take the input until pat succeeds does not consume the recognized pat
-pub fn take_until<'i, T, E: ParseErr<'i>>(
-    mut pat: impl Parser<'i, T, E> + 'i,
-) -> impl FnMut(Located<'i>) -> LResult<'i, Located<'i>, E> + 'i {
-    move |input: Located<'i>| {
-        let mut part = input;
-        let mut res = pat.parse_next(part);
-        while let Err(ErrFlow::Backtrack(_)) = res {
-            part = part.try_slice(1..).ok_or_else(|| {
-                ErrFlow::Incomplete(E::new("unexpected eof").span(part.slice(..0)))
-            })?;
-            res = pat.parse_next(part);
-        }
-
-        match res {
-            Ok(_) => Ok((part, input.slice(..part.offset() - input.offset()))),
-            Err(e) => Err(e),
-        }
-    }
-}
-
-/// Take the input until pat succeeds and consumes the recognized pat and returns the result
-pub fn take_till<'i, T, E: ParseErr<'i>>(
-    mut pat: impl Parser<'i, T, E> + 'i,
-) -> impl FnMut(Located<'i>) -> LResult<'i, (Located<'i>, T), E> + 'i {
-    move |input: Located<'i>| {
-        let mut part = input;
-        let mut res = pat.parse_next(part);
-        while let Err(ErrFlow::Backtrack(_)) = res {
-            part = part.try_slice(1..).ok_or_else(|| {
-                ErrFlow::Incomplete(E::new("unexpected eof").span(part.slice(..0)))
-            })?;
-            res = pat.parse_next(part);
-        }
-        match res {
-            Ok((rem, v)) => Ok((rem, (input.slice(..part.offset() - input.offset()), v))),
-            Err(e) => Err(e),
-        }
-    }
-}
-
-/// Parse one of the input parsers in order given to the function
-pub fn alt<'i, T, E: ParseErr<'i>>(
-    mut list: impl Alt<'i, T, E> + 'i,
-) -> impl FnMut(Located<'i>) -> LResult<'i, T, E> + 'i {
-    move |input| list.choice(input)
-}
-
-/// The helper trait for the [`alt`] function
-///
-/// inspired by nom
-pub trait Alt<'i, T, E: ParseErr<'i>> {
-    /// Try to run each parser
-    fn choice(&mut self, input: Located<'i>) -> LResult<'i, T, E>;
-}
-
-macro_rules! alt_impl {
-    ($($gen:ident.$idx:tt)*; $fgen:ident.$fidx:tt) => {
-        impl<'i, Output, Err, $($gen,)* $fgen> Alt<'i, Output, Err> for ($($gen,)* $fgen,)
-        where
-            Err: ParseErr<'i>,
-            $($gen: Parser<'i, Output, Err>,)*
-            $fgen: Parser<'i, Output, Err>,
-        {
-            fn choice(&mut self, input: Located<'i>) -> LResult<'i, Output, Err> {
-                $(
-                match self.$idx.parse_next(input) {
-                    Err(ErrFlow::Backtrack(_)) => (),
-                    o => return o,
-                }
-                )*
-
-                // parse the final one without checking any backtracking
-                self.$fidx.parse_next(input)
-            }
-        }
-    };
-}
-
-alt_impl!(; A.0);
-alt_impl!(A.0; B.1);
-alt_impl!(A.0 B.1; C.2);
-alt_impl!(A.0 B.1 C.2; D.3);
-alt_impl!(A.0 B.1 C.2 D.3; E.4);
-alt_impl!(A.0 B.1 C.2 D.3 E.4; F.5);
-alt_impl!(A.0 B.1 C.2 D.3 E.4 F.5; G.6);
-alt_impl!(A.0 B.1 C.2 D.3 E.4 F.5 G.6; H.7);
-alt_impl!(A.0 B.1 C.2 D.3 E.4 F.5 G.6 H.7; I.8);
-
-#[cfg(test)]
-mod test {
-    use crate::{parse::many_until, Error};
-
-    use super::{
-        anychar, many_till, tag, take_till, take_until, whitespace0, whitespace1, Located, Parser,
-    };
-
-    #[test]
-    fn located_slice() {
-        let s = Located::new("this text is good");
-
-        let part = s.slice(0..4);
-        assert!(part.as_ref() == "this");
-        assert!(part.offset() == 0);
-        assert!(part.len() == 4);
-
-        let part = s.slice(5..9);
-        assert!(part.as_ref() == "text");
-        assert!(part.offset() == 5);
-        assert!(part.len() == 4);
-
-        let part = part.slice(1..=2);
-        assert!(part.as_ref() == "ex");
-        assert!(part.offset() == 6);
-        assert!(part.len() == 2);
-
-        let part = s.slice(1..);
-        assert!(part.as_ref() == "his text is good");
-        assert!(part.offset() == 1);
-        assert!(part.len() == s.len() - 1);
-
-        let part = s.slice(..2);
-        assert!(part.as_ref() == "th");
-        assert!(part.offset() == 0);
-        assert!(part.len() == 2);
-    }
-
-    #[test]
-    fn tag_parser() {
-        let s = Located::new("my input");
-
-        let (remaining, out) = tag::<Error>("my").parse_next(s).unwrap();
-        assert!(out.as_ref() == "my");
-        assert!(remaining.as_ref() == " input");
-    }
-
-    #[test]
-    fn whitespace0_parser() {
-        let s = Located::new("  s");
-        let (remaining, _) = whitespace0::<Error>.parse_next(s).unwrap();
-        assert!(remaining.as_ref() == "s");
-
-        let s = Located::new("s");
-        let (remaining, _) = whitespace0::<Error>(s).unwrap();
-        assert!(remaining.as_ref() == "s");
-    }
-
-    #[test]
-    fn whitespace1_parser() {
-        let input = Located::new("   s");
-
-        let (remaining, _) = whitespace1::<Error>(input).unwrap();
-        assert!(remaining.as_ref() == "s");
-
-        let input = Located::new("s ");
-        whitespace1::<Error>(input).unwrap_err();
-
-        let input = Located::new(" ");
-        let (remaining, _) = whitespace1::<Error>(input).unwrap();
-        assert!(remaining.as_ref() == "");
-    }
-
-    #[test]
-    fn anychar_parser() {
-        let input = Located::new("abcdef");
-
-        let (remaining, ch) = anychar::<Error>(input).unwrap();
-        assert!(remaining.as_ref() == "bcdef");
-        assert!(ch == 'a');
-    }
-
-    #[test]
-    fn take_until_parser() {
-        let input = Located::new("abcdef");
-
-        let (remaining, val) = take_until::<_, Error>(tag("d"))(input).unwrap();
-        assert!(remaining.as_ref() == "def");
-        assert!(val.as_ref() == "abc");
-
-        let (remaining, val) = take_until::<_, Error>(tag("f"))(input).unwrap();
-        assert!(remaining.as_ref() == "f");
-        assert!(val.as_ref() == "abcde");
-
-        let input = Located::new(" i %}");
-        let (remaining, val) = take_until::<_, Error>(tag("%}"))(input).unwrap();
-        assert!(remaining.as_ref() == "%}");
-        assert!(val.as_ref() == " i ");
-    }
-
-    #[test]
-    fn take_till_parser() {
-        let input = Located::new("abcdef");
-
-        let (remaining, (inner, tagg)) = take_till::<_, Error>(tag("d"))(input).unwrap();
-        assert!(remaining.as_ref() == "ef");
-        assert!(inner.as_ref() == "abc");
-        assert!(tagg.as_ref() == "d");
-
-        let (remaining, (inner, tagg)) = take_till::<_, Error>(tag("f"))(input).unwrap();
-        assert!(remaining.as_ref() == "");
-        assert!(inner.as_ref() == "abcde");
-        assert!(tagg.as_ref() == "f");
-    }
-
-    #[test]
-    fn many_until_parser() {
-        let input = Located::new("abcdef");
-
-        let (remaining, chars) = many_until(anychar::<Error>, tag("d"))(input).unwrap();
-        assert!(remaining.as_ref() == "def");
-        assert!(chars == vec!['a', 'b', 'c']);
-
-        let (remaining, chars) = many_until(anychar::<Error>, tag("f"))(input).unwrap();
-        assert!(remaining.as_ref() == "f");
-        assert!(chars == vec!['a', 'b', 'c', 'd', 'e']);
-    }
-
-    #[test]
-    fn many_till_parser() {
-        let input = Located::new("abcdef");
-
-        let (remaining, (chars, tagg)) = many_till(anychar::<Error>, tag("d"))(input).unwrap();
-        assert!(remaining.as_ref() == "ef");
-        assert!(chars == vec!['a', 'b', 'c']);
-        assert!(tagg.as_ref() == "d");
-
-        let (remaining, (chars, tagg)) = many_till(anychar::<Error>, tag("f"))(input).unwrap();
-        assert!(remaining.as_ref() == "");
-        assert!(chars == vec!['a', 'b', 'c', 'd', 'e']);
-        assert!(tagg.as_ref() == "f");
+        Cow::Borrowed(haystack)
     }
 }

@@ -8,8 +8,17 @@ That means it features all the type safety the rust compiler will give you.
 It is still loosly related to [Jinja](https://jinja.palletsprojects.com), however it
 has adopted a more rust-like expression syntax.
 
-This project is very early on, I just started it because I liked askama but I felt that
-it could be improved by allowing a more rust specific syntax in the template expressions.
+I started this project because rust is a great language, and Jinja2 is the template engine
+I was most used to. I however felt that one thing Jinja always lacked was expressivity, in
+the sense that you couldn't write arbitrary python code into the template. This limitation
+is preserved in other libraries like Askama, [Tera](https://github.com/Keats/tera), and 
+[minijinja](https://github.com/mitsuhiko/minijinja). While those projects are all great, I
+personally found them lacking in usability.
+
+This project while much younger than Askama and other template engines, is in a state
+that I believe to be very usable, in fact it is being used in production for multiple
+projects in my office.
+
 If you have suggestions, features, questions, or anything else please feel free to open
 an issue. I could especially use extra help writing unit tests for stuff, and would be
 open to working with others to get that done.
@@ -43,7 +52,7 @@ Here is what `index.html` could look like
         {% some_data %} <!--This will print some_data to the template here using 
                             the types implementaion of the Display trait-->
     </body>
-</html
+</html>
 ```
 
 #### About Stilts Expressions

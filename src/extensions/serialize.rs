@@ -31,7 +31,6 @@ where
     }
 }
 
-#[cfg_attr(not(feature = "with-json"), allow(dead_code))]
 struct FmtWriter<'a, 'b>(&'a mut std::fmt::Formatter<'b>);
 
 impl<'a, 'b> std::io::Write for FmtWriter<'a, 'b> {

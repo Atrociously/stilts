@@ -1,6 +1,6 @@
 # Introduction
 
-- [Stilts](./stilts.md)
+- [Intro](./intro.md)
 
 # Usage
 
@@ -8,9 +8,9 @@
 - [The Template Macro](./template_macro.md)
 
 - [Stilts Language](./language.md)
-  - [Rust Expressions](./rust_expressions.md)
-  - [Control Expressions](./control_expressions.md)
-  - [Inheritance Expressions](./inheritance_expressions.md)
+  - [Rust Expressions](./language/rust_expressions.md)
+  - [Control Expressions](./language/control_expressions.md)
+  - [Inheritance Expressions](./language/inheritance_expressions.md)
 
 - [Configuration](./configuration.md)
 

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use cargo_metadata::{camino::Utf8PathBuf, MetadataCommand};
 use serde::{Deserialize, Deserializer};
+use stilts_lang::Delims;
 
 use crate::{err, pathing::expand_path};
 
@@ -10,6 +11,8 @@ use crate::{err, pathing::expand_path};
 pub struct Config {
     pub template_dir: Utf8PathBuf,
     pub trim: bool,
+    #[serde(deserialize_with = "Config::deserialize_delims")]
+    pub delimiters: Delims,
     #[serde(deserialize_with = "Config::deserialize_writer_name")]
     pub writer_name: syn::Ident,
     #[serde(
@@ -50,6 +53,14 @@ impl Config {
             .unwrap_or_else(|| syn::parse_str("::stilts::escaping::Empty").unwrap())
     }
 
+    fn deserialize_delims<'de, D>(deserializer: D) -> Result<Delims, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        <[String; 2]>::deserialize(deserializer)
+            .map(|[open, close]| Delims::new(open, close))
+    }
+
     fn deserialize_writer_name<'de, D>(deserializer: D) -> Result<syn::Ident, D::Error>
     where
         D: Deserializer<'de>,
@@ -66,14 +77,14 @@ impl Config {
         D: Deserializer<'de>,
     {
         let mut table = Self::default_escape_table();
-        let parsed = HashMap::<String, String>::deserialize(deserializer)?;
+        let parsed = HashMap::<String, Vec<String>>::deserialize(deserializer)?;
 
-        for (key, val) in parsed {
-            let key = key
-                .parse()
+        for (path, extensions) in parsed {
+            let path: syn::Path = syn::parse_str(&path)
                 .map_err(<D::Error as serde::de::Error>::custom)?;
-            let val = syn::parse_str(&val).map_err(<D::Error as serde::de::Error>::custom)?;
-            table.insert(key, val);
+            for extension in extensions {
+                table.insert(extension, path.clone());
+            }
         }
         Ok(table)
     }
@@ -98,6 +109,7 @@ impl Default for Config {
         Self {
             template_dir: expand_path("$CARGO_MANIFEST_DIR/templates"),
             trim: false,
+            delimiters: Delims::default(),
             writer_name: syn::Ident::new("_w", proc_macro2::Span::call_site()),
             escape_table: Self::default_escape_table(),
         }

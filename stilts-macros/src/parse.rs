@@ -48,6 +48,12 @@ impl TemplateSource {
             _ => None,
         }
     }
+
+    pub fn mime_type(&self) -> Option<mime_guess::mime::Mime> {
+        self.as_path()
+            .map(mime_guess::from_path)
+            .and_then(|g| g.first())
+    }
 }
 
 pub struct TemplateAttrs {

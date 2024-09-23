@@ -7,11 +7,15 @@ edition = "2021"
 actix-web = ["dep:actix-web", "stilts/actix-web"]
 axum = ["dep:axum", "stilts/axum"]
 gotham = ["dep:gotham", "stilts/gotham"]
+rocket = ["dep:rocket", "stilts/rocket"]
+warp = ["dep:warp", "stilts/warp"]
 
 [dependencies]
 actix-web = { version = "*", optional = true }
 axum = { version = "*", optional = true }
 gotham = { version = "*", optional = true }
+rocket = { version = "*", optional = true }
+warp = { version = "*", optional = true }
 
 stilts = { path = "../" }
 
@@ -25,4 +29,6 @@ harness = false
 
 [package.metadata.stilts]
 trim = true
-escape = { js = "CustomEscaper" }
+
+[package.metadata.stilts.escape]
+"CustomEscaper" = ["js"]

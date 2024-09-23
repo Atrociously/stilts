@@ -1,12 +1,19 @@
 [package]
 name = "stilts-lang"
-version = "0.2.0"
-description = "The parser for stilts"
+version = "0.3.0"
 edition = "2021"
-license = "MIT"
+
+[features]
+extra-traits = ["syn/extra-traits"]
 
 [dependencies]
-miette = "5.9"
-proc-macro2 = { version = "1", features = ["span-locations"] }
-syn = { version = "2", features = ["full", "extra-traits"] }
-thiserror = "1"
+aho-corasick = "1.1"
+bitflags = "2.6"
+miette.workspace = true
+proc-macro2.workspace = true
+syn.workspace = true
+thiserror = "1.0"
+winnow = { version = "0.6.18", features = ["simd"] }
+
+[dev-dependencies]
+pretty_assertions = "1.4.1"

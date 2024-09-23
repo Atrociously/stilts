@@ -16,14 +16,14 @@ struct LitTemplate<'a> {
 
 #[test]
 fn ensure_matches() {
-    const EXPECTED: &str = r###"<!DOCTYPE html>
+    const EXPECTED: &str = r#"<!DOCTYPE html>
 <html><head>i have stuffoverwrites</head>
     <body>
         <header>2my code content &lt;a&gt;&lt;&#x2F;a&gt;my code content &lt;a&gt;&lt;&#x2F;a&gt;</header>
         <main>Hello Word<a href="/">MY MAN</a>my code content <a></a></main>
-        <footer>INSIDE MY MACOOFMYSTR%}</footer>
+        <footer>INSIDE MY MACOOFMYSTR</footer>
     </body>
-</html>"###;
+</html>"#;
 
     let val = MyTemplate {
         a: "my code content <a></a>",

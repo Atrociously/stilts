@@ -20,7 +20,7 @@ and straightforward to read, there should be little to no fluff outside of this 
 Here is a quick sample of some Stilts template and construction.
 
 ### template.html
-```html
+```stilts
 <div>
     {% for user in users %}
     <a href="{% user.profile.safe() %}">{% user.name %}</a>

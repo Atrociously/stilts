@@ -96,9 +96,9 @@ pub use extensions::{DebugExt, DisplayExt, SerializeExt};
 /// ```
 pub use stilts_macros::Template;
 
-#[cfg(any(feature = "warp", feature = "tide"))]
+#[cfg(feature = "tide")]
 mod integrations;
-#[cfg(any(feature = "warp", feature = "tide"))]
+#[cfg(feature = "tide")]
 pub use integrations::*;
 
 pub mod escaping;
@@ -106,6 +106,9 @@ mod extensions;
 
 /// The main template trait that is implemented by the derive macro
 pub trait Template {
+    /// Returns the guessed mime type of the template if it has one
+    fn mime_str(&self) -> Option<&'static str>;
+
     /// Required to run the render function which passes a string as the writer
     fn fmt(&self, writer: &mut (impl Write + ?Sized)) -> std::fmt::Result;
 

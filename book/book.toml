@@ -4,3 +4,8 @@ language = "en"
 multilingual = false
 src = "src"
 title = "Stilts"
+
+[output.html]
+site-url = "https://atrociously.github.io/stilts"
+additional-css = ["theme/lines.css"]
+additional-js = ["theme/highlightjs-line-numbers.min.js", "theme/linenum.js"]

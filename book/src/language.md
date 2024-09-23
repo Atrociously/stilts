@@ -6,18 +6,20 @@ will be outlined and explained in detail with examples.
 
 There are two major components that make up a template *content* and *expressions*.
 Content is the static text that makes up the structure of the template. Expressions
-are invocations to the template engine to perform some kind of manipulation of the source
-text. This section covers all the kinds of *expressions* which can be used in Stilts.
+are invocations to the template engine to manipulate the *content*
+.This section covers all the kinds of *expressions* which can be used in Stilts.
 
 All *expressions* in Stilts are direct one-to-one compatible with their rust counter parts.
 This allows nearly unlimited freedom in how users can manipulate their templates.
 
-In Stilts an *expression* is either a single piece of code surrounded by the delimiters `{%` and `%}` e.g.
-```html
+In Stilts an **expression** is either a single piece of code surrounded by the delimiters `{%` and `%}` e.g.
+```stilts
 {% include "other.html" %}
 ```
+> This is cool
+
 Or it is a multi-expression *block* which has an opening and `end` *expression* e.g.
-```html
+```stilts
 {% if show_this %}
     <a></a>
 {% end %}
