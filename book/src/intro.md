@@ -10,14 +10,13 @@ of something falls out of the purview of the Stilts templating engine this docum
 link to a proper explanation of that topic. The goal of this is to keep this book simple
 and straightforward to read, there should be little to no fluff outside of this page.
 
-### Assumtions About You, The Reader
+### Assumptions About You, The Reader
 - Knows what a [template engine](https://en.wikipedia.org/wiki/Template_processor) is
 - Familiar with [Rust](https://www.rust-lang.org/)
-  - If you aren't I would recommend reading [the book](https://doc.rust-lang.org/book/)
+  - If you aren't I would recommend reading [the rust book](https://doc.rust-lang.org/book/)
 
 ## Quick Sample
-
-Here is a quick sample of some Stilts template and construction.
+---
 
 ### template.html
 ```stilts
@@ -34,13 +33,13 @@ use stilts::Template;
 
 #[derive(Template)]
 #[stilts(path = "template.html")]
-struct QuickExample {
-    users: Vec<User>,
+struct QuickExample<'s> {
+    users: Vec<User<'s>>,
 }
 
-struct User {
-    profile: Url,
-    name: String,
+struct User<'s> {
+    profile: &'s str,
+    name: &'s str,
 }
 ```
 
@@ -95,8 +94,8 @@ Some notable runtime engines would include Tera, Handlebars, Liquid, and Minijin
 
 ## Important Mentions
 The Stilts templating engine takes major inspiration from
-[Askama](https://github.com/djc/askama). Askama is an older
-library with more history and support behind it, which Stilts cannot claim to have.
+[Askama](https://github.com/djc/askama). Askama is a more mature 
+library with more history and support backing it, which Stilts cannot claim to have.
 However Stilts provides features that I believe are worth the change.
 
 It took a lot of research on procedural macros to figure out
