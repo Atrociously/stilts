@@ -1,41 +1,11 @@
 # Stilts
 
-_Stilts_ is a templating engine and language that provides compile time correctness guarantees.
-
-## Quick Sample
----
-
-Below is a quick example some very simple _Stilts_ template code
-
-_templates/template.html_
-```stilts
-<div>
-    {% for user in users %}
-    <a href="{% user.profile.safe() %}">{% user.name %}</a>
-    {% end %}
-</div>
-```
-
-_template.rs_
-```rust
-use stilts::Template;
-
-#[derive(Template)]
-#[stilts(path = "template.html")]
-struct QuickExample<'s> {
-    users: Vec<User<'s>>,
-}
-
-struct User<'s> {
-    profile: &'s str,
-    name: &'s str,
-}
-```
+_Stilts_ is a templating engine and language that provides type safety guarantees.
 
 ## About This "Book"
 ---
 
-This is a sort of manual for using the _Stilts_ templating engine in code.
+This is a manual for using the _Stilts_ templating engine in code.
 It will cover all of the details necessary for a programmer to use and even
 abuse the engine to acomplish their goals. This documentation will not cover
 certain aspects of related materials when it would detract from the explanation
@@ -73,7 +43,7 @@ by some inputs, then Stilts can work well for that.
      Therefore you are able to write arbitrary rust code anywhere inside your templates.
 3. **Performant render times**
    - This while not a primary focus of the Stilts engine is a nice benefit you
-     get when most of the work is done at compile time.
+     get when most of the work is done at compile time see [performance]().
 
 ### Drawbacks
 
@@ -82,10 +52,10 @@ by some inputs, then Stilts can work well for that.
      template rules to arbitrary text that is recieved at runtime, which Stilts
      simply cannot do due to it's very nature.
 2. **Longer iteration times**
-   - Iteration is important especially when working with UI/UX, so impairing
+   - Iterating on your design is important especially when working with UI/UX, so impairing
      iteration times can be a big problem for some people. Stilts impairs iteration
      times by forcing your entire application to recompile when minor template changes
-     need to be made. This effect can however be [reduced](./iterating_reccomendation.md).
+     need to be made. It is however possible to [reduce iterating friction](./iterating_reccomendation.md).
 3. **Cross Language support**
    - Stilts is as rust first and only system. Similar projects could be made for other
      languages, but they would not follow the syntax or rules that rust enforces.
@@ -103,7 +73,7 @@ Some notable runtime engines would include Tera, Handlebars, Liquid, and Minijin
 
 The Stilts templating engine takes major inspiration from
 [Askama](https://github.com/djc/askama). Askama is a more mature 
-library with more history and support backing it, which Stilts cannot claim to have.
+library with more history and support backing it, which Stilts does not have.
 However Stilts provides features that I believe are worth the change.
 
 It took a lot of research on procedural macros to figure out

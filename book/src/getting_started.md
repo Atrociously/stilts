@@ -9,6 +9,12 @@ By default Stilts looks for template files in a directory named `templates`
 relative to your project root. This can be [configured](./configuration.md)
 if that is not your desired behavior.
 
+### Requirements:
+- [Rust Installed](https://www.rust-lang.org/tools/install)
+- A text editor
+  - (Optional) One that can be specialized for [coding rust](https://areweideyet.com/)
+
+### Instructions:
 1. Create a file in the `templates` directory named `example.txt`.
 2. Write the following into `templates/example.txt`
    ```html
