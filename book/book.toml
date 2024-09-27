@@ -9,3 +9,6 @@ title = "Stilts"
 site-url = "https://atrociously.github.io/stilts"
 additional-css = ["theme/lines.css"]
 additional-js = ["theme/highlightjs-line-numbers.min.js", "theme/linenum.js", "vis/plotly.min.js", "vis/boxit.js"]
+
+[output.html.playground]
+runnable = false

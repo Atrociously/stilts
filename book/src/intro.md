@@ -1,24 +1,13 @@
 # Stilts
 
-Stilts is a templating engine and language that provides compile time correctness guarantees.
-
-## About This "Book"
-
-This documentation is here to help programmers take full advantage of all of the features
-that Stilts provides. Stilts will be the only focus of this documentation, if explanation
-of something falls out of the purview of the Stilts templating engine this document should
-link to a proper explanation of that topic. The goal of this is to keep this book simple
-and straightforward to read, there should be little to no fluff outside of this page.
-
-### Assumptions About You, The Reader
-- Knows what a [template engine](https://en.wikipedia.org/wiki/Template_processor) is
-- Familiar with [Rust](https://www.rust-lang.org/)
-  - If you aren't I would recommend reading [the rust book](https://doc.rust-lang.org/book/)
+_Stilts_ is a templating engine and language that provides compile time correctness guarantees.
 
 ## Quick Sample
 ---
 
-### template.html
+Below is a quick example some very simple _Stilts_ template code
+
+_templates/template.html_
 ```stilts
 <div>
     {% for user in users %}
@@ -27,7 +16,7 @@ and straightforward to read, there should be little to no fluff outside of this 
 </div>
 ```
 
-### template.rs
+_template.rs_
 ```rust
 use stilts::Template;
 
@@ -43,7 +32,24 @@ struct User<'s> {
 }
 ```
 
+## About This "Book"
+---
+
+This is a sort of manual for using the _Stilts_ templating engine in code.
+It will cover all of the details necessary for a programmer to use and even
+abuse the engine to acomplish their goals. This documentation will not cover
+certain aspects of related materials when it would detract from the explanation
+of a _Stilts_ concept. It will however link to reading on said related materials
+whenever possible. Ideally this document can be understood by anybody even people who
+fall outside of the target audience.
+
+### Target Audience
+- A [Rust](https://www.rust-lang.org/) programmer
+  - If not you'll want to have [rust book](https://doc.rust-lang.org/stable/book/) as a reference
+- Needs a [Template Engine](https://en.wikipedia.org/wiki/Template_processor) probably for a website
+
 ## Use Cases
+---
 
 Stilts is primarily designed for templating html in web projects and has default settings
 configured to cater to that use case. However it certainly can be used and modified to
@@ -93,6 +99,8 @@ you should look for some other engines [here](https://www.arewewebyet.org/topics
 Some notable runtime engines would include Tera, Handlebars, Liquid, and Minijinja.
 
 ## Important Mentions
+---
+
 The Stilts templating engine takes major inspiration from
 [Askama](https://github.com/djc/askama). Askama is a more mature 
 library with more history and support backing it, which Stilts cannot claim to have.
