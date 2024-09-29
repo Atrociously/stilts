@@ -1,6 +1,6 @@
 [package]
 name = "stilts-macros"
-version = "0.3.0"
+version = "0.3.1"
 description = "The macros that generate the templates for stilts"
 edition = "2021"
 license = "MIT"
@@ -9,6 +9,7 @@ license = "MIT"
 proc-macro = true
 
 [features]
+debug = ["stilts-lang/debug"]
 narratable = []
 fancy = ["miette/fancy"]
 actix-web = []
@@ -24,7 +25,7 @@ proc-macro2.workspace = true
 quote = "1"
 
 # parser for the stilts language
-stilts-lang = { path = "../stilts-lang", version = "0.3.0", features = ["extra-traits"] }
+stilts-lang = { path = "../stilts-lang", version = "0.3", features = ["extra-traits"] }
 
 # libraries to enable certain useful features
 serde = { version = "1", features = ["derive"] }

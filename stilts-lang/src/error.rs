@@ -106,7 +106,9 @@ where
     I: Stream + AsRef<Located<'i>>,
 {
     fn from_error_kind(input: &I, kind: winnow::error::ErrorKind) -> Self {
-        Self::new(kind.description().to_string()).span(input.as_ref().here())
+        let mut err = Self::new(kind.description().to_string()).span(input.as_ref().here());
+        err.kind = Some(kind);
+        err
     }
 
     fn append(
@@ -150,7 +152,8 @@ pub(crate) fn expect_end<'i>(
     open_expr: Located<'i>,
 ) -> impl FnOnce(ErrMode<Error<'i>>) -> ErrMode<Error<'i>> {
     move |errmode| {
-        if errmode.is_incomplete() {
+        let slice_bad = matches!(&errmode, ErrMode::Backtrack(e) | ErrMode::Cut(e) if e.kind == Some(ErrorKind::Slice));
+        if errmode.is_incomplete() || slice_bad {
             ErrMode::Cut(
                 Error::new("expected closing {% end %} expression")
                     .label("opening block expression")
