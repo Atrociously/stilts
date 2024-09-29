@@ -3,7 +3,8 @@
 To get started with Stilts you will need to add the dependency to
 your project either with `cargo add stilts` or editing your `Cargo.toml`.
 
-## Your first template
+## How to Create Templates
+---
 
 By default Stilts looks for template files in a directory named `templates`
 relative to your project root. This can be [configured](./configuration.md)
@@ -11,42 +12,99 @@ if that is not your desired behavior.
 
 ### Requirements:
 - [Rust Installed](https://www.rust-lang.org/tools/install)
+  This includes access to the following commands:
+  - cargo
 - A text editor
   - (Optional) One that can be specialized for [coding rust](https://areweideyet.com/)
+- Access to a command prompt or [terminal emulator](https://en.wikipedia.org/wiki/Terminal_emulator)
+  - On Windows the default command prompt or powershell will work fine
+  - On Linux most distributions provide a default terminal emulator
+  - On macOS the terminal app will work
 
 ### Instructions:
-1. Create a file in the `templates` directory named `example.txt`.
-2. Write the following into `templates/example.txt`
-   ```html
-   Hello from {% name %}!
+1. **Create a new rust project.**
+   Depending on what kinds of tools you have installed there are a few ways to create a new rust project.
+   The most common is by [using cargo](https://doc.rust-lang.org/cargo/guide/creating-a-new-project.html).
+   To create a project with cargo open your terminal emulator 
+   Using the `cargo` tool create a new project for these instructions it will be called `hellostilts`.
+   To create the project then enter the project folder run the following commands in your terminal emulator.
+   ```shell,nonum
+   cargo new hellostilts
+   cd hellostilts
    ```
-   > The usage of the `{%` and `%}` delimiters are how we can interact with the
-   > Stilts engine. There are many more uses for them but in this instance we are
-   > telling Stilts to *render* the variable `name` into the spot where this is invoked.
-3. In your rust project `main.rs` write the following
+   This will create a new directory named `hellostilts` with contents that look like this:
+   ![directory tree showing a file "Cargo.toml" and a folder "src" inside hellostilts](./images/inst1_ftree.png)
+
+2. **Add Stilts as a Dependency.**
+   In order to make use out of _Stilts_ you'll need to add it to your project dependencies.
+   The simplest method is to once again use `cargo`
+   ```shell
+   cargo add stilts
+   ```
+
+3. **Create Template Directory.**
+   Inside the new project create a directory named `templates`, this is where
+   our future template code will be created. You can do this via a file explorer
+   or using the command:
+   ```shell
+   mkdir templates
+   ```
+
+4. **Write Template Code.**
+   Inside the newly created `templates` folder create and edit your first template file.
+   It can be named anything but for these instructions it will be called `index.html`
+   Write something like this into the file:
+   ```stilts
+   <ul>
+   {% for name in names %}
+       <li>Hello {% name %}!</li>
+   {% end %}
+   </ul>
+   ```
+
+5. **Write Rust Code.**
+   Now you have created a template that can be understood by the _Stilts_ engine.
+   Next it just has to be used in code. In the `main.rs` file that was
+   made when your project was created, write the following:
    ```rust
    use stilts::Template;
 
-   // In Stilts templates are defined on structs
-   // the fields on said structs are then the parameters
-   // that are available to the template when rendering
    #[derive(Template)]
-   #[stilts(path = "example.txt")] // notice I don't specify templates/example.txt
-   struct MyFirstTemplate {
-       // This is the name variable referenced in example.txt
-       name: &'static str,
+   #[stilts(path = "example.txt")]
+   struct Index<'s> {
+       names: Vec<&'s str>
    }
 
    fn main() {
-       // construct an instance of the template with specified arguments
-       let template = MyFirstTemplate { name: "Stilts" };
-       // render the template into a string
-       let output = template.render().unwrap();
-       assert_eq!(output, "Hello from Stilts!".to_string());
+       let template = Index {
+           names: vec![
+               "Jack",
+               "Grant",
+               "Amber",
+               "Alex"
+           ],
+       };
+       println!("{}", template.render().unwrap());
    }
-   ```
+   ``` 
 
-   > The comments in the code highlights a few important details, but it is worthwhile to
-   > go into a little more depth. The struct field `name` is the variable referenced by
-   > the template itself. This is the mechanism by which you inject data into the template
-   > at runtime. You can add as many fields of any type you wish to the struct.
+6. **Run The Program.**
+   You have almost rendered a template! The final step is to compile and run the
+   program. Thanks to `cargo` it is a simple single step!
+   ```shell
+   cargo run
+   ```
+   Now the output of that program should look a little something like:
+   ```html
+   <ul>
+
+       <li>Hello Jack!</li>
+
+       <li>Hello Grant!</li>
+
+       <li>Hello Amber!</li>
+
+       <li>Hello Alex!</li>
+
+   </ul>
+   ```

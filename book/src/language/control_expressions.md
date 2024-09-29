@@ -1,6 +1,6 @@
 # Control Expressions
 
-Control *expressions* are those which can control content that is displayed within a template.
+Control *expressions* are those which can control the logic of how content is displayed within a template.
 For instance conditionally rendering a section of a template depending on the value of a variable, or
 rendering a section multiple times based on a list of items. For most control expressions they share
 (structure/properties/token stream) with their rust counterpart.

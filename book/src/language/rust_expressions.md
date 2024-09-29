@@ -47,7 +47,7 @@ In rust **expressions** must always produce a value, **statements** however prod
 This mechanism should be familiar to most rust programmers, as it is how `return` can be omitted
 at the end of functions by just ending the function with an **expression**.
 
-```html
+```stilts,nonum
 {% let mut data = my_data.iter()
     .filter(|x| x.allowed)
     .collect::<Vec<_>>(); %}
@@ -58,7 +58,7 @@ we were rendering the data into a json array that was inserted into a javascript
 this example the `let` is completely inside the delimiters, meaning that we are declaring a variable
 in rust which can be used later inside the template.
 
-```html
+```stilts
 {% let mut data = my_data.iter()
     .filter(|x| x.allowed)
     .collect::<Vec<_>>(); %}
