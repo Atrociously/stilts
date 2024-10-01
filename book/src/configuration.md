@@ -1,9 +1,35 @@
-# TODO: lots more work on the book incoming
+# Configuration
 
-The config is set in your project `Cargo.toml` file
-below is the default config.
+Stilts can be configured to meet many potential requirements. Stilts is
+configured via your projects existing `Cargo.toml` file which already is
+your rust config. All configuration is done using [`package.metadata`](https://doc.rust-lang.org/cargo/reference/manifest.html#the-metadata-table)
+which is a cargo feature that allows Stilts to define a custom configuration
+within your existing cargo project. To modify the configuration set values
+in the `package.metadata.stilts` field in your project config, e.g.
 
-## Cargo.toml
+```toml
+# Cargo.toml
+[package.metadata.stilts]
+trim = true
+```
+
+
+Here is a list of configuration options, what they do, and their defaults:
+- **template_dir**: Sets the root directory that Stilts looks in to find your templates.
+  > Default: "$CARGO_MANIFEST_DIR/templates"
+- **trim**: Trims whitespace from the beginning and end of each piece of template content
+  in between expressions.
+  > Default: false
+- **delimiters**: Sets what delimiters Stilts uses when parsing templates.
+  > Default: ["{%", "%}"]
+- **writer_name**: Sets the name of the variable used when generating the template rendering code.
+  > Default: "_w"
+- **escape**: A table of paths to types that implement [`Escaper`](https://docs.rs/stilts/latest/stilts/escaping/trait.Escaper.html),
+  and the list of file extensions which that implementation will be applied to.
+  > Default: { "::stilts::escaping::Html" = ["html", "htm"] }
+
+
+So the default configuration would look like this in the context of a full `Cargo.toml` file.
 ```toml
 [package.metadata.stilts]
 template_dir = "$CARGO_MANIFEST_DIR/templates"
@@ -11,10 +37,6 @@ trim = false
 delimiters = ["{%", "%}"]
 writer_name = "_w"
 
-# This table defines a relationship between
-# escapers and file extensions
-# All file extensions can only have one escaper
-# that escaper can be overridden
 [package.metadata.stilts.escape]
 "::stilts::escaping::Html" = ["html", "htm"]
 ```

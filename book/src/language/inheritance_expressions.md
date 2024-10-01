@@ -8,12 +8,39 @@ An extends *expression* is how a template asserts that it is based upon another 
 it *extends* the *base* template's functionality in some way.
 
 ### base.html
-```html
+```stilts
+Hello from the parent!
+```
+
+### child.html
+```stilts
+{% extends "base.html" %}
+
+Hello from the child!
+```
+
+### Output
+```
+Hello from the parent!
+
+Hello from the child!
+```
+
+## Block
+
+Distinct from the concept of *block expressions* a stilts *inheritance block* is used to define secions of templates
+which can be overriden by child templates.
+
+### base.html
+A parent/base template defines as many blocks as it wants, these blocks define overwriteable sections of template
+that child templates can overwrite to inject code into the context provided by the parent template.
+
+```stilts
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <!--A bunch of metadata stuff-->
         {% block head %}
+        <title>This is extensible!</title>
         {% end %}
     </head>
     <body>
@@ -24,10 +51,11 @@ it *extends* the *base* template's functionality in some way.
 ```
 
 ### child.html
-```html
+```stilts
 {% extends "base.html" %}
 
 {% block head %}
+    {% super() %}
     <script>
     </script>
 {% end %}
@@ -37,6 +65,20 @@ it *extends* the *base* template's functionality in some way.
 {% end %}
 ```
 
-## Block
+### Output
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>This is extensible!</title>
+        <script>
+        </script>
+    </head>
+    <body>
+        <button>Hello World!</button>
+    </body>
+</html>
+```
 
 ## Include

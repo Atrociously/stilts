@@ -21,7 +21,7 @@ A stilts *expression* only exists within the context of a template, and must be 
 </script>
 ```
 
-As a general rule stuff between the delimiters is not required to be on a single line so the
+As a general rule code between the delimiters is not required to be on a single line so the
 previous example could just as easily be formatted as follows.
 
 ```html
@@ -47,7 +47,7 @@ In rust **expressions** must always produce a value, **statements** however prod
 This mechanism should be familiar to most rust programmers, as it is how `return` can be omitted
 at the end of functions by just ending the function with an **expression**.
 
-```stilts,nonum
+```stilts
 {% let mut data = my_data.iter()
     .filter(|x| x.allowed)
     .collect::<Vec<_>>(); %}
