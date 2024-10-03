@@ -7,8 +7,8 @@ will be outlined and explained in detail with examples.
 A template is made up of two components *content* and *expressions*.
 Expressions are further divided into multiple categories but they either
 control the logic of the template rendering or are replaced by values while rendering.
-The *content* of a template is the static text that is manipulated by the engine
-as defined by the *expressions* within that template.
+The content of a template is the static text that is manipulated by the engine
+as defined by the expressions within that template.
 
 All *expressions* in Stilts are directly comparable to their rust counter parts.
 This allows nearly unlimited freedom in how users can manipulate their templates.

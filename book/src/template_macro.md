@@ -1,14 +1,23 @@
 # The Template Macro
 
-In previous examples we see usage of the template derive macro.
-This macro invocation is how templates are declared in Stilts.
-The previous examples showed templates rendered from external files.
+In previous instructions the rust code made use of the template [derive macro](https://doc.rust-lang.org/book/ch19-06-macros.html).
+Invoking this macro is how our template code gets compiled into our rust code.
+This macro performs a few different things depending on what options are provided,
+however the core function is converting template code into an [`Template`](https://docs.rs/stilts/latest/stilts/trait.Template.html)
+trait implementation.
 
+In the instructions the `path` argument was used to load a template from a file.
+This is the most common way of defining templates. Arguments are provided using
+the same macro syntax and the `stilts` prefix followed by the args to provide.
 ```rust
 #[derive(Template)]
 #[stilts(path = "index.html")]
 struct Example;
 ```
+
+## Macro Arguments
+
+
 
 This generates an implementation of the `Template` trait which uses
 the contents of the `index.html` file to determine how it is rendered.
