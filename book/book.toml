@@ -7,6 +7,7 @@ title = "Stilts"
 
 [output.html]
 site-url = "https://atrociously.github.io/stilts"
+git-repository-url = "https://github.com/Atrociously/stilts"
 additional-css = ["theme/lines.css"]
 additional-js = ["theme/highlightjs-line-numbers.min.js", "theme/linenum.js", "vis/plotly.min.js", "vis/boxit.js"]
 

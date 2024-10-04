@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const plotEls = document.getElementsByTagName("boxit");
     if (plotEls.length === 0) {return;}
 
-    let data = await fetch("/data.json").then(res => res.ok ? res.json() : {});
+    let data = await fetch("https://raw.githubusercontent.com/Atrociously/stilts/refs/heads/master/book/vis/data.json").then(res => res.ok ? res.json() : {});
     for (el of plotEls) {
         const key = el.getAttribute("key");
         if (!key) {return;}
