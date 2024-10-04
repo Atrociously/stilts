@@ -12,6 +12,8 @@ The techniques for reducing this friction can be broadly categorized into 3 grou
 Live Reload, Change Watching, and Compilation Speed.
 
 ## Live Reload
+---
+
 Live reloading is a method of automatically refreshing changes on the frontend of a design for the designer to view when
 changes are made to a code base. When using Stilts this methodology works much better when combined with a change watcher.
 
@@ -20,6 +22,8 @@ changes are made to a code base. When using Stilts this methodology works much b
   browser when it detects the server go down and come back.
 
 ## Change Watching
+---
+
 Change watching is a system which watches for file changes inside your project and automatically causes a recompilation
 based on that.
 
