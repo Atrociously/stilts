@@ -18,7 +18,6 @@
 # Runtime Details
 
 - [Extension Traits](./extension_traits.md)
-- [Macros As Functions](./macros_in_depth.md)
 - [Performance](./performance.md)
 
 # References

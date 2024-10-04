@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const benches = data[key];
         const [measure, traces] = scaleUnits(benches);
-        Plotly.newPlot(el, traces.reverse(), {
+        Plotly.newPlot(el, traces, {
             title: title,
             xaxis: {
                 title: {

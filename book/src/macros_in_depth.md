@@ -1,1 +1,0 @@
-# Macros As Functions

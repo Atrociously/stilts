@@ -1,6 +1,7 @@
 # Rust Expressions
 
 ## Display
+---
 
 A display expression is one that has already been shown earlier in the book and is the
 simplest of all the expressions. It instructs the engine to write some variable data into
@@ -42,6 +43,7 @@ The other thing these examples show off is the `json` function, this is one of a
 functions that Stilts provides via ["Extension Traits"](../extension_traits.md).
 
 ## Statement
+---
 
 A statement *expression* is very similar to a display *expression* except that it does not
 render anything to the template. It is rust code that gets run at that point during template

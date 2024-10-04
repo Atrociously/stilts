@@ -28,6 +28,7 @@ Or it is a multi-expression *block* which has an opening and *ending expression*
 Any item that requires an `{% end %}` *expression* will be referred to as a *block* in Stilts.
 
 ## Expression Table
+---
 
 Here is a quick reference to the different expressions Stilts has, if this is your first
 reading you should just continue reading and not skip ahead, this is provided as a convenience.

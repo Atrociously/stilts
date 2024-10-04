@@ -40,3 +40,43 @@ writer_name = "_w"
 [package.metadata.stilts.escape]
 "::stilts::escaping::Html" = ["html", "htm"]
 ```
+
+## Escaping
+---
+
+Stilts implements an opt-out escaping scheme for templates. By default the only escaping mechanism
+is for html files, which is the major use case for Stilts. Custom schemes can be added to the configuration
+as seen above. Stilts also provides a method of excluding whole templates and single display expressions from
+being escaped if so desired.
+
+The html escaping follows OWASP standards of replacing the following characters with safe versions: `&`, `<`, `>`, `"`, `'`, `/`
+
+The above configuration section shows how users can add escapers to the opt-out system of stilts
+but it does not describe how to actually implement an escaper. Below is a custom implementation that
+replaces a curse word with stars. This is meant only as an example of how to create a custom escaper.
+
+```rust,numbered
+use std::fmt::{self, Display};
+use stilts::escaping::Escaper;
+
+struct HorrificSwear;
+impl Escaper for HorrificSwear {
+    fn fmt<T: Display + ?Sized>(
+        &self,
+        value: &T,
+        f: &mut fmt::Formatter<'_>
+    ) -> fmt::Result {
+        let s = value.to_string();
+        let safe = s.replace("heck", "**ck") // clearly much better
+        f.write_str(&safe)
+    }
+}
+```
+
+Once you have that done simply add it to your config as follows to 
+make it operate on all of the file extensions listed for its entry.
+
+```toml
+[package.metadata.stilts.escape]
+"::my_crate::HorrificSwear" = ["txt", "md"]
+```

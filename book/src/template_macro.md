@@ -10,50 +10,56 @@ In the instructions the `path` argument was used to load a template from a file.
 This is the most common way of defining templates. Arguments are provided using
 the same macro syntax and the `stilts` prefix followed by the args to provide.
 ```rust
-#[derive(Template)]
-#[stilts(path = "index.html")]
-struct Example;
+#[derive(Template)]            // Use the derive macro
+#[stilts(path = "index.html")] // Provides arguments to the derive macro
+struct Example;                // The item which the trait is implemented on
 ```
 
 ## Macro Arguments
+---
 
+The template derive macro has multiple arguments which can be used to tweak
+how the macro generates the template code. Some of the arguments are used
+to override behavior described in the [configuration](./configuration.md) section.
 
+Either **path** or **content** must be specified
+- **path**: The path relative to the template root of the template to render
+- **content**: The direct contents of the template provided by a string literal
+- **escape**: Override the escaper detected by file extension with a specified one
+- **trim**: Override the trim behavior defined in your config
 
-This generates an implementation of the `Template` trait which uses
-the contents of the `index.html` file to determine how it is rendered.
-There is however one more method of providing template content to the
-macro. This is by providing the `content` attribute instead of a `path`.
-
-```rust
+### Examples:
+Standard use case
+```rust,numbered
 #[derive(Template)]
-#[stilts(content = "Hello from {% name %}!")]
+#[stilts(path = "index.html")]
 struct MyTemplate {
-    name: String
+    my_data: String,
 }
 ```
 
-The essential process of the macro is to read in the template content
-either from a file or directly from the code and translate that into
-an implementation of the `Template` trait, which is used to then render
-the template into a string at runtime. Stilts also provides a few integrations
-with popular rust web libraries to ease the usage of templates in web code.
-
-## Individual Sanitization
-
-One final important feature of the template macro is that you can
-customize how sanitization works on a per-template basis. 
-The sanitization mechanism itself is covered in depth [here](./sanitization.md).
-
-```rust
+Using content instead of path
+```rust,numbered
+# use stilts::Template;
 #[derive(Template)]
-#[stilts(
-    path = "index.html",
-    escape = stilts::escaping::Empty,
-)]
-struct Example;
+#[stilts(content = "My {% data %} Template")]
+struct MyInlineTemplate {
+    data: String,
+}
 ```
 
-This instructs the macro to code utilizing a specific method
-of sanitization. In this specific example it uses `Empty` which
-is defined by stilts to do zero escaping of any kind. By default
-stilts sanitizes for html.
+An example of setting the trim and escape to something else. This forces
+Stilts to not trim whitespace around expressions, and to use the [`Empty`](https://docs.rs/stilts/latest/stilts/escaping/struct.Empty.html)
+escaper which does no escaping at all.
+```rust,numbered
+# use stilts::Template;
+#[derive(Template)]
+#[stilts(
+    content = "Templates are fun",
+    trim = false,
+    escape = ::stilts::escaping::Empty
+)]
+struct MyOverridenTemplate {
+    my_data: String,
+}
+```

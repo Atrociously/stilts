@@ -6,6 +6,7 @@ rendering a section multiple times based on a list of items. For most control ex
 (structure/properties/token stream) with their rust counterpart.
 
 ## If
+---
 
 A Stilts if *block* can be used to change what parts of a template are rendered based on some value.
 
@@ -36,9 +37,11 @@ Often it is useful to render something for multiple different cases for this you
 ```
 
 ## Match
+---
 
 A *match* block is used in much the same way as an *if* block, but match blocks can be used to pattern match.
 
+### TODO: add more detail on this
 ```html
 {% match data %}
     {% when Some(value) if !value.is_empty() %}
@@ -51,9 +54,11 @@ A *match* block is used in much the same way as an *if* block, but match blocks 
 ```
 
 ## For
+---
 
 The *for* block is an expression which is used to repeat parts of a template multiple times.
 
+### TODO: add more detail on this
 ```stilts
 <table>
 {% for row in table %}
@@ -71,6 +76,7 @@ The *for* block is an expression which is used to repeat parts of a template mul
 The *macro* block is also used to repeat parts of a template but instead of in sequence the repetitions
 can be controlled and have arguments.
 
+### TODO: add more detail on this
 ```stilts
 {% macro list_user(user: User) %}
 <li>
