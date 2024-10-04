@@ -55,7 +55,7 @@ by some inputs, then Stilts can work well for that.
    - Iterating on your design is important especially when working with UI/UX, so impairing
      iteration times can be a big problem for some people. Stilts impairs iteration
      times by forcing your entire application to recompile when minor template changes
-     need to be made. It is however possible to [reduce iterating friction](./iterating_reccomendation.md).
+     need to be made. It is however possible to [reduce iterating friction](./design_iteration.md).
 3. **Cross Language support**
    - Stilts is as rust first and only system. Similar projects could be made for other
      languages, but they would not follow the syntax or rules that rust enforces.

@@ -13,6 +13,7 @@
   - [Inheritance Expressions](./language/inheritance_expressions.md)
 
 - [Configuration](./configuration.md)
+- [Design Iteration](./design_iteration.md)
 
 # Runtime Details
 
