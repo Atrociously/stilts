@@ -22,7 +22,7 @@ of it's [`Display`](https://doc.rust-lang.org/std/fmt/trait.Display.html) implem
 ## DisplayExt
 ---
 
-This is implemented on any type that implements [`Display`] and is provides multiple functions.
+This is implemented on any type that implements `Display` and is provides multiple functions.
 
 The functions currently provided by this trait are:
 - `safe` Which marks the value as safe to render without running through a sanitizer.

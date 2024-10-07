@@ -5,6 +5,22 @@ multilingual = false
 src = "src"
 title = "Stilts"
 
+[output.pandoc]
+optional = true
+
+[output.pandoc.profile.pdf]
+output-file = "output.pdf"
+to = "latex"
+pdf-engine="xelatex"
+
+[output.pandoc.profile.pdf.variables]
+mainfont = "DejaVu Serif"
+sansfont = "DejaVu Sans"
+monofont = "JetBrainsMono Nerd Font"
+
+[output.wordcount]
+optional = true
+
 [output.html]
 site-url = "https://atrociously.github.io/stilts"
 git-repository-url = "https://github.com/Atrociously/stilts"
