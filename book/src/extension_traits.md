@@ -3,7 +3,7 @@
 Extension traits are an existing concept in rust used to add functionality to types.
 Stilts defines a few extension traits which are imported into the template rendering scope automatically.
 
-Currently there are three traits exposing 5 methods which can be used to change how a variable
+Currently, there are three traits exposing 5 methods which can be used to change how a variable
 is rendered. You can view the [trait docs](https://docs.rs/stilts/latest/stilts/#traits) to see
 how the traits are defined and implemented, but this page will cover the basics of how to use them.
 
@@ -11,7 +11,7 @@ how the traits are defined and implemented, but this page will cover the basics 
 ---
 
 This trait is implemented for any type that implements [`Debug`](https://doc.rust-lang.org/std/fmt/trait.Debug.html).
-It adds a method `debug` which makes stilts render the type using it's `Debug` implementation instead
+It adds a method `debug` which makes stilts render the type using its `Debug` implementation instead
 of it's [`Display`](https://doc.rust-lang.org/std/fmt/trait.Display.html) implementation which is the default.
 
 ### Example
@@ -29,14 +29,14 @@ The functions currently provided by this trait are:
 - `lowercase` Changes the output of the type to all lowercase.
 - `uppercase` Changes the output of the type to all uppercase.
 
-> **Warning** Only use the `safe` function on data that is verifiably html safe.
+> **Warning** Only use the `safe` function on data that is verifiably HTML safe.
 > Not following this rule opens you up to [XSS](https://owasp.org/www-community/attacks/xss/) attacks!
-> Anything involving user input is an example of where you want to be very careful using `safe`
+> Anything involving user input is an example of where you want to be very careful using `safe`.
 
 ## SerializeExt
 ---
 
-This only provides one function and it is implemented on any type which implements
+This only provides one function, and it is implemented on any type which implements
 [serde](https://github.com/serde-rs/serde) [`Serialize`](https://docs.rs/serde/latest/serde/trait.Serialize.html).
 It adds the `json` function which converts the type into a [JSON](https://en.wikipedia.org/wiki/JSON)
 string. This is most useful for adding data to a javascript script inside the template.

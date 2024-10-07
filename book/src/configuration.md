@@ -44,14 +44,14 @@ writer_name = "_w"
 ## Escaping
 ---
 
-Stilts implements an opt-out escaping scheme for templates. By default the only escaping mechanism
-is for html files, which is the major use case for Stilts. Custom schemes can be added to the configuration
+Stilts implements an opt-out escaping scheme for templates. By default, the only escaping mechanism
+is for HTML files, which is the major use case for Stilts. Custom schemes can be added to the configuration
 as seen above. Stilts also provides a method of excluding whole templates and single display expressions from
 being escaped if so desired.
 
-The html escaping follows OWASP standards of replacing the following characters with safe versions: `&`, `<`, `>`, `"`, `'`, `/`
+The HTML escaping follows OWASP standards of replacing the following characters with safe versions: `&`, `<`, `>`, `"`, `'`, `/`
 
-The above configuration section shows how users can add escapers to the opt-out system of stilts
+The above configuration section shows how users can add escapers to the opt-out system of stilts,
 but it does not describe how to actually implement an escaper. Below is a custom implementation that
 replaces a curse word with stars. This is meant only as an example of how to create a custom escaper.
 
@@ -74,7 +74,7 @@ impl Escaper for HorrificSwear {
 ```
 
 Once you have that done simply add it to your config as follows to 
-make it operate on all of the file extensions listed for its entry.
+make it operate on all the file extensions listed for its entry.
 
 ```toml
 [package.metadata.stilts.escape]

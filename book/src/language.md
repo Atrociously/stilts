@@ -4,13 +4,19 @@ Stilts is a templating engine and as such supports many features
 that popular template engines support. Here is where each feature
 will be outlined and explained in detail with examples.
 
+## Vocabulary
+---
+
+To *render* something in the context of a template is to write it into the data that is output
+by the engine that is the completed template and provided data.
+
 A template is made up of two components *content* and *expressions*.
 Expressions are further divided into multiple categories but they either
 control the logic of the template rendering or are replaced by values while rendering.
 The content of a template is the static text that is manipulated by the engine
 as defined by the expressions within that template.
 
-All *expressions* in Stilts are directly comparable to their rust counter parts.
+All *expressions* in Stilts are directly comparable to their rust counterparts.
 This allows nearly unlimited freedom in how users can manipulate their templates.
 
 In Stilts an *expression* is either a single piece of code surrounded by the delimiters `{%` and `%}` e.g.

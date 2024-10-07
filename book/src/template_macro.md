@@ -3,7 +3,7 @@
 In previous instructions the rust code made use of the template [derive macro](https://doc.rust-lang.org/book/ch19-06-macros.html).
 Invoking this macro is how our template code gets compiled into our rust code.
 This macro performs a few different things depending on what options are provided,
-however the core function is converting template code into an [`Template`](https://docs.rs/stilts/latest/stilts/trait.Template.html)
+however the core function is converting template code into a [`Template`](https://docs.rs/stilts/latest/stilts/trait.Template.html)
 trait implementation.
 
 In the instructions the `path` argument was used to load a template from a file.
@@ -19,7 +19,7 @@ struct Example;                // The item which the trait is implemented on
 ---
 
 The template derive macro has multiple arguments which can be used to tweak
-how the macro generates the template code. Some of the arguments are used
+how the macro generates the template code. Some arguments are used
 to override behavior described in the [configuration](./configuration.md) section.
 
 Either **path** or **content** must be specified

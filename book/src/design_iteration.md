@@ -12,7 +12,7 @@ The techniques for reducing this friction can be broadly categorized into 3 grou
 Live Reload, Change Watching, and Compilation Speed.
 
 ## Live Reload
-Live reloading is a method of automatically refreshing changes on the frontend of a design for the designer to view when
+A method of automatically refreshing changes on the frontend of a design for the designer to view when
 changes are made to a code base. When using Stilts this methodology works much better when combined with a change watcher.
 
 - [Tower Livereload](https://github.com/leotaku/tower-livereload) is a library which can be added to any web server that
@@ -20,11 +20,11 @@ changes are made to a code base. When using Stilts this methodology works much b
   browser when it detects the server go down and come back.
 
 ## Change Watching
-Change watching is a system which watches for file changes inside your project and automatically causes a recompilation
+A system that watches for file changes inside your project and automatically causes a recompilation
 based on that.
 
 - [Bacon](https://github.com/Canop/bacon) is a wonderful tool which watches for rust source code file changes. This requires
-  some configuration to use in conjunction with Stilts. Namely bacon must be told to also watch the templates directory
+  some configuration to use in conjunction with Stilts. Namely, bacon must be told to also watch the `templates` directory,
   and to kill the running process and restart instead of wait and restart.
 
   You can configure this in a global config or at the project level in a file called `bacon.toml` but here is an example
@@ -41,7 +41,7 @@ based on that.
   ```shell
   watchexec -r -e rs,html,css,js cargo run
   ```
-  Will watch for changes in files with the extensions: rs, html, css, or js and run the command `cargo run` while
+  Will watch for changes in files with the extensions: rs, HTML, CSS, or JS and run the command `cargo run` while
   restarting the existing process that was already running.
 - [Cargo Watch](https://github.com/watchexec/cargo-watch) Is not recommended by the project author anymore due to lack of
   time to support the project, however it still works very well. It is the most straightforward to use as a single simple command
@@ -56,7 +56,7 @@ compilation times will increase the speed with which you can iterate on your des
 and many of them can be combined to add on top of eachother.
 
 - **Break you code up into multiple crates.** One simple performance improvement can be to break code into multiple crates. There isn't
-  an exact science to this and it may not be a good idea for very simple projects. The reason this works however is that the rust
+  an exact science to this, and it may not be a good idea for very simple projects. The reason this works however is that the rust
   compiler launches multiple threads to perform compilation in parallel, but the unit of compilation is the crate. Meaning that
   splitting code into multiple crates makes for better parallel compilation.
 - **Use the [mold](https://github.com/rui314/mold) linker.** This is simply a tool switch from the default linker rust uses to another

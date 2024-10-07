@@ -8,25 +8,28 @@ rendering a section multiple times based on a list of items. For most control ex
 ## If
 ---
 
-A Stilts if *block* can be used to change what parts of a template are rendered based on some value.
+A Stilts *if* block can be used to change what parts of a template are rendered based on some value.
 
-For example we can render a link only if some data is present to display the link.
+For example, we can render a link only if some data is present to display the link.
 ```html
 {% if data.is_some() %}
     <a href="{% data.unwrap().href %}">{% data.unwrap().name %}</a>
 {% end %}
 ```
 
+Now depending on whether `data.is_some()` is `true` or `false` the template
+will either render the stuff inside the if block or not.
+
 But having to unwrap multiple times is cumbersome, thankfully rust provides the [if let](https://doc.rust-lang.org/reference/expressions/if-expr.html#if-let-expressions)
-system for that. Stilts if *blocks* are basically equivalent to standard rust if statements so any valid rust is valid in Stilts.
+convention for that. Stilts *if* blocks are basically equivalent to standard rust if statements, so any valid rust is valid in Stilts.
 ```html
-{% if show_link == "yes" %}
+{% if let Some(value) = data %}
     <a href="{% value.href %}">{% value.name %}</a>
 {% end %}
 ```
 
 Often it is useful to render something for multiple different cases for this you can use `else if` and `else`.
-```html
+```stilts
 {% if let Some(value) = data %}
     <a href="{% value.href %}">{% value.name %}</a>
 {% else if let Some(value) = other %}
@@ -39,10 +42,10 @@ Often it is useful to render something for multiple different cases for this you
 ## Match
 ---
 
-A *match* block is used in much the same way as an *if* block, but match blocks can be used to pattern match.
+A *match* block is used in much the same way as an *if* block, but match blocks can be used to [pattern match](https://doc.rust-lang.org/book/ch18-00-patterns.html).
+The match block is functionally equivalent to a rust [match](https://doc.rust-lang.org/book/ch06-02-match.html).
 
-### TODO: add more detail on this
-```html
+```stilts
 {% match data %}
     {% when Some(value) if !value.is_empty() %}
         <a href="{% value.href %}">{% value.name %}</a>
@@ -53,12 +56,24 @@ A *match* block is used in much the same way as an *if* block, but match blocks 
 {% end %}
 ```
 
+Just like their rust counterparts Stilts matches are exhaustive, meaning that all possible cases
+must be covered by the match arms. If you need, you can use the wildcard catch-all to provide a "default" case.
+
+```stilts
+{% match data %}
+    {% when Some() if !value.is_empty() %}
+        <a href="{% value.href %}">{% value.name %}</a>
+    {% when _ %}
+{% end %}
+```
+
 ## For
 ---
 
-The *for* block is an expression which is used to repeat parts of a template multiple times.
+The *for* block is an expression which is used to repeat parts of a template multiple times. Again like the above blocks
+it is the same as the rust equivalent [for loop](https://doc.rust-lang.org/book/ch03-05-control-flow.html?highlight=loop#looping-through-a-collection-with-for).
 
-### TODO: add more detail on this
+This will loop over the items in a collection and render the contents for each item in the collection.
 ```stilts
 <table>
 {% for row in table %}
@@ -72,21 +87,32 @@ The *for* block is an expression which is used to repeat parts of a template mul
 ```
 
 ## Macro
+---
 
-The *macro* block is also used to repeat parts of a template but instead of in sequence the repetitions
-can be controlled and have arguments.
+The *macro* block defines a section of template code that can be manually called to render in multiple locations
+and with different arguments. This is most useful for reducing code duplication within a template.
 
-### TODO: add more detail on this
+Macros are not similar to rust macros, instead they are more like functions which can take args and
+will always output template code.
+
+This is a simple example where we have to do the same thing twice but with two different sets of 
+data, and in two different locations within the template. We could write the whole for loop twice, 
+or we could use a macro!
 ```stilts
-{% macro list_user(user: User) %}
-<li>
-    {% user.name %}
-</li>
+{% macro list_users(users: &[User]) %}
+<ul>
+    {% for user in users %}
+    <li>
+        {% user.name %}
+    </li>
+    {% end %}
+</ul>
 {% end %}
 
-<ul>
-{% for user in users %}
-    {% call list_user(user) %}
-{% end %}
-</ul>
+<div class="active">
+    {% call list_users(active_users) %}
+</div>
+<div class="inactive">
+    {% call list_users(inactive_users) %}
+</div>
 ```

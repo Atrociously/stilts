@@ -3,33 +3,35 @@
 ## Display
 ---
 
-A display expression is one that has already been shown earlier in the book and is the
+A *display* expression is one that has already been shown earlier in the book and is the
 simplest of all the expressions. It instructs the engine to write some variable data into
 the template at a specific point.
 
+One of the most simple uses is to write the contents of a variable into the template.
 ```html
 <span>{% my_variable %}</span>
 ```
 
-This is the most simple case, however this *expression* is more flexible than just rendering
-a variable name. It actually allows any arbitrary rust [**expression**](https://doc.rust-lang.org/reference/expressions.html) 
-inside the delimiters. A rust **expression** is a separate concept from a Stilts *expression*.
-A stilts *expression* only exists within the context of a template, and must be surrounded by the stilts delimiters.
+It actually allows any arbitrary rust [expression](https://doc.rust-lang.org/reference/expressions.html) 
+inside the delimiters. The previous link leads to a technical definition of rust expressions if you need more
+of a primer on how they are used [see the book](https://doc.rust-lang.org/stable/book/ch03-03-how-functions-work.html?highlight=expression#statements-and-expressions).
+A rust expression is a separate concept from a Stilts *expression*.
+A Stilts *expression* only exists within the context of a template, and must be surrounded by the stilts delimiters.
 
 For a display expression to be valid the rust expression within the delimiters must evaluate to a type which implements
 [`Display`](https://doc.rust-lang.org/std/fmt/trait.Display.html). That is however the only limitation, there is
 absolutely no limitation on syntax. For example inside the delimiters here is a fairly complex rust.
 
-```html
+```stilts
 <script>
     let data = {% my_data.iter().filter(|x| x.allowed).collect::<Vec<_>>().json() %};
 </script>
 ```
 
-As a general rule code between the delimiters is not required to be on a single line so the
+As a general rule code between the delimiters is not required to be on a single line, so the
 previous example could just as easily be formatted as follows.
 
-```html
+```stilts
 <script>
     let data = {% my_data.iter()
         .filter(|x| x.allowed)
@@ -45,7 +47,7 @@ functions that Stilts provides via ["Extension Traits"](../extension_traits.md).
 ## Statement
 ---
 
-A statement *expression* is very similar to a display *expression* except that it does not
+A *statement* expression is very similar to a display *expression* except that it does not
 render anything to the template. It is rust code that gets run at that point during template
 rendering but does not insert anything into the template. The way this works is by using
 a rust [**statement**](https://doc.rust-lang.org/reference/statements.html) to distinguish whether
@@ -62,10 +64,10 @@ Doing this causes the value to **not** be rendered to the output.
     .collect::<Vec<_>>(); %}
 ```
 
-Why would you want to write template expressions that neither render a value or affect the render logic?
+Why would you want to write template expressions that neither render a value nor affect the render logic?
 Well the answer is variable declaration/modification and ["side effects"](https://en.wikipedia.org/wiki/Side_effect_(computer_science)).
 If you need to introduce a variable for any reason you can do so using a statement. As for side effects
-those are probably more rare than variable, but if some action needs to be performed without affecting
+those are probably more rare than variable, but if some action needs to be performed without altering
 the template then use a **statement**.
 
 In the following example we declare a mutable variable data using a statement,

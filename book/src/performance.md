@@ -5,7 +5,7 @@ The tests ran were modified and updated from these [template benchmarks](https:/
 updated in some time. The benchmark code will be released to open source soon to provide better insight into methodology, but it hasn't changed much
 from the linked benchmarks.
 
-Stilts underperforms slightly when compared to other compiled template engines, but it still greatly out performs runtime engines.
+Stilts underperforms slightly when compared to other compiled template engines, but it still greatly outperforms runtime engines.
 This result is at least partially expected, other compiled template engines are able to employ certain optimizations at compile
 time, that have not been implemented in Stilts.
 

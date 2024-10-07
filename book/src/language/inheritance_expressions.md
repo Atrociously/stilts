@@ -5,9 +5,16 @@ template engines that inspired it.
 
 ## Extends
 ---
-An extends *expression* is how a template asserts that it is based upon another template 
-it *extends* the *base* templates content with it's own. Without the usage of *blocks* the
-content of the child template is simply added to the end of the parent template.
+
+The *extends* expression informs the Stilts engine that the current template **extends**
+the functionality of another template. The current template becomes a "child" of the 
+template in the *extends* expression. A child template is any template which invokes the *extends* expression
+in order to inherit from a "parent" template. A parent template is any template which has child templates that extend
+from it. A template can be at once a parent and a child template if both those conditions are met.
+
+The **extending** of functionality in the simplest case means that the content of the current template
+is added to the end of the parent template and that is how it gets rendered. It does however get more
+complicated with *block* expressions.
 
 ### base.html
 ```stilts
@@ -33,11 +40,19 @@ Hello from the child!
 ---
 
 Distinct from the concept of *block expressions* a stilts *inheritance block* is used to define secions of templates
-which can be overriden by child templates.
+which can both be overriden by a potential child template and overrides a potential parent.
+
+The same expression is used in parent and child templates to perform their related tasks. On the parent
+defining a block means providing a section that any child templates **can** override, while in the
+child template defining a block means overridding the block that is defined by the parent.
+
+A *block* only works in conjunction with the *extends* expressions to provide an inheritance structure to reduce
+template code duplication. This is best accomplished by writing most boilerplate into a base template that other
+child templates are able to extend and overwrite pieces of to create their own functionality.
 
 ### base.html
-A parent/base template defines as many blocks as it wants, these blocks define overwriteable sections of template
-that child templates can overwrite to inject code into the context provided by the parent template.
+A parent/base template defines as many blocks as it wants wherever it wants. It can even put code
+into those blocks to provide default data in case a child template does not override the block.
 
 ```stilts
 <!DOCTYPE html>
@@ -56,15 +71,14 @@ that child templates can overwrite to inject code into the context provided by t
 
 ### child.html
 
-You'll notice in this example the `{% super() %}` this is a special expression which
-can only be used inside blocks which allows the child template to bring back the content
-of the parent block. If *super* is not called the content within the block defined by the
-parent is completely overriden by the child template.
+The child template when defining the same blocks is now overriding the blocks as defined
+by the parent template. This means the code inside the child blocks is **essentially** injected
+into the parent at the block definition.
 ```stilts
 {% extends "base.html" %}
 
 {% block head %}
-    {% super() %}
+    {% super() %} <!-- Take note of this expression it is explained below -->
     <script>
     </script>
 {% end %}
@@ -74,8 +88,16 @@ parent is completely overriden by the child template.
 {% end %}
 ```
 
+The `{% super() %}` expression is a special expression which
+can only be used inside blocks which allows the child template to bring back the content
+of the parent block. If *super* is not called the content within the block defined by the
+parent is completely overriden by the child template.
+
 ### Output
-This is what the output of rendering the child template would look like
+This is what the output of rendering the child template would look like. Since the child
+template used the *super* expression in the `head` block the content of the parent template
+was preserved while rendering the child.
+
 ```html
 <!DOCTYPE html>
 <html lang="en">
@@ -93,7 +115,7 @@ This is what the output of rendering the child template would look like
 ## Include
 ---
 
-An include expression is used to add the content from another template into a template
+An *include* expression is used to add the content from another template into a template
 at a specified point in the template.
 
 For example say you have a base template that all other templates inherit from

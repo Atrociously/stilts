@@ -27,7 +27,7 @@ tools is discovery.
    
    To create a project with cargo open your terminal emulator 
    Using the `cargo` tool create a new project for these instructions it will be called `hellostilts`.
-   Run the following commands to create the project and enter the project directory
+   Run the following commands to create the project and enter the project directory.
    ```shell
    cargo new hellostilts
    cd hellostilts
@@ -42,7 +42,7 @@ tools is discovery.
 
 2. **Add Stilts as a Dependency.**
    In order to make use out of _Stilts_ you'll need to add it to your project dependencies.
-   The simplest method is to once again use `cargo`
+   The simplest method is to once again use `cargo`.
    ```shell
    cargo add stilts
    ```
@@ -74,7 +74,7 @@ tools is discovery.
    {% end %}
    </ul>
    ```
-   Finally your project directory should look like this which is all the required files:
+   Finally, your project directory should look like this which is all the required files:
    ```text,tree
    📁 hellostilts/
    ├── 📁 src/
