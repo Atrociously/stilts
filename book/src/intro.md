@@ -1,7 +1,7 @@
 # Stilts
 
 _Stilts_ is a templating engine designed for the rust programming language that
-makes use of rusts compile time to keep templates safe and correct.
+makes use of rust's compile time to keep templates safe and correct.
 
 ## About This "Book"
 ---
