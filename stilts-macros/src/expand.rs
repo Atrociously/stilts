@@ -37,8 +37,23 @@ impl Graph {
     pub fn load(cfg: &Config, attrs: &TemplateAttrs) -> syn::Result<Self> {
         let mut graph = Vec::with_capacity(1);
 
-        let node = Self::load_node(cfg, &attrs.source, attrs.escape.clone(), attrs.trim)?;
+        let mut node = Self::load_node(cfg, &attrs.source, attrs.escape.clone(), attrs.trim)?;
         let mut parent = Self::get_parent(&node.root);
+
+        // isolate a single block
+        if let Some(block) = &attrs.block {
+            let Some(block) = node.blocks.remove(block) else {
+                return Err(err!(format!("isolated block not found: {block}")));
+            };
+
+            let blocks = Self::get_blocks(block.content.iter());
+            node.blocks = blocks;
+            node.root.content = block.content;
+            
+            // blocks don't support inheritance
+            parent = None;
+        }
+
         graph.push(node);
 
         fn check_dependency_cycle(
@@ -341,6 +356,7 @@ impl<'a> TemplateRef<'a> {
                     source: TemplateSource::new_file(reference),
                     escape: self.escape_override.clone(),
                     trim: self.trim_override,
+                    block: None,
                 };
                 let graph = Graph::load(cfg, &attrs)?;
                 graph.expand(cfg)
