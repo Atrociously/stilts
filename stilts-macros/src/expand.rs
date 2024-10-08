@@ -37,20 +37,22 @@ impl Graph {
     pub fn load(cfg: &Config, attrs: &TemplateAttrs) -> syn::Result<Self> {
         let mut graph = Vec::with_capacity(1);
 
-        let data = read_template(cfg, &attrs.source)?;
-        let root = parse_template(&data.content, cfg.delimiters.clone())
-            .map(Root::into_owned)
-            .map_err(format_err)?;
+        let mut node = Self::load_node(cfg, &attrs.source, attrs.escape.clone(), attrs.trim)?;
+        let mut parent = Self::get_parent(&node.root);
 
-        let mut parent = Self::get_parent(&root);
-        let blocks = Self::get_blocks(root.content.iter());
-        let node = TemplateNode {
-            data,
-            blocks,
-            root,
-            escape_override: attrs.escape.clone(),
-            trim_override: attrs.trim,
-        };
+        // isolate a single block
+        if let Some(block) = &attrs.block {
+            let Some(block) = node.blocks.remove(block) else {
+                return Err(err!(format!("isolated block not found: {block}")));
+            };
+
+            let blocks = Self::get_blocks(block.content.iter());
+            node.blocks = blocks;
+            node.root.content = block.content;
+            
+            // blocks don't support inheritance
+            parent = None;
+        }
 
         graph.push(node);
 
@@ -76,30 +78,43 @@ impl Graph {
         }
 
         while let Some(p) = parent {
-            let data = read_template(cfg, &TemplateSource::new_file(p))?;
+            let source = TemplateSource::new_file(p);
+            let node = Self::load_node(cfg, &source, attrs.escape.clone(), attrs.trim)?;
 
-            if let Some(path) = &data.path {
+            // always true, but this piggybacks on the transformation from `p` to `path`
+            if let Some(path) = &node.data.path {
                 check_dependency_cycle(cfg, &graph, path)?;
             }
 
-            let root = parse_template(&data.content, cfg.delimiters.clone())
-                .map(Root::into_owned)
-                .map_err(format_err)?;
-            let blocks = Self::get_blocks(&root.content);
-
-            let node = TemplateNode {
-                data,
-                blocks,
-                root,
-                escape_override: attrs.escape.clone(),
-                trim_override: attrs.trim,
-            };
             parent = Self::get_parent(&node.root);
             graph.push(node);
         }
 
         graph.reverse();
         Ok(Self(graph))
+    }
+
+    /// Read and parse a single template file or literal.
+    fn load_node(
+        cfg: &Config,
+        source: &TemplateSource,
+        escape_override: Option<syn::Path>,
+        trim_override: Option<bool>,
+    ) -> syn::Result<TemplateNode> {
+        let data = read_template(cfg, source)?;
+        let root = parse_template(&data.content, cfg.delimiters.clone())
+            .map(Root::into_owned)
+            .map_err(format_err)?;
+
+        let blocks = Self::get_blocks(root.content.iter());
+
+        Ok(TemplateNode {
+            data,
+            blocks,
+            root,
+            escape_override,
+            trim_override,
+        })
     }
 
     // descend the template inheritance list rendering all of them sequentially
@@ -341,6 +356,7 @@ impl<'a> TemplateRef<'a> {
                     source: TemplateSource::new_file(reference),
                     escape: self.escape_override.clone(),
                     trim: self.trim_override,
+                    block: None,
                 };
                 let graph = Graph::load(cfg, &attrs)?;
                 graph.expand(cfg)

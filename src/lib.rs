@@ -64,6 +64,7 @@ pub use extensions::{DebugExt, DisplayExt, SerializeExt};
 /// - **content**: The direct contents of the template provided by a string literal
 /// - **escape**: Override the escaper detected by file extension with a specified one
 /// - **trim**: Override the trim behavior defined in your config
+/// - **block**: Only use the contents of a specific block
 ///
 /// ## Examples:
 /// Standard use case
@@ -91,6 +92,15 @@ pub use extensions::{DebugExt, DisplayExt, SerializeExt};
 /// #[derive(Template)]
 /// #[stilts(content = "Templates are fun", trim = false, escape = ::stilts::escaping::Empty)]
 /// struct MyOverridenTemplate {
+///     my_data: String,
+/// }
+/// ```
+/// 
+/// Only using a single block
+/// ```ignore
+/// #[derive(Template)]
+/// #[stilts(path = "index.html", block = "popup")]
+/// struct MyTemplate {
 ///     my_data: String,
 /// }
 /// ```
