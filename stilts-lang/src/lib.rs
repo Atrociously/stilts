@@ -183,7 +183,10 @@ mod test {
                         Item::Content("\n    ".into()),
                         Item::Expr(Expr::Expr(syn::parse_str(r#""Hello Word""#).unwrap())),
                         Item::Content("\n    ".into()),
-                        Item::Expr(Expr::Include("other.html".into())),
+                        Item::Expr(Expr::Include {
+                            reference: "other.html".into(),
+                            args: Punctuated::parse_terminated.parse_str("").unwrap()
+                        }),
                         Item::Content("\n    ".into()),
                         Item::Expr(Expr::Expr(syn::parse_str("a").unwrap())),
                         Item::Content("\n".into())

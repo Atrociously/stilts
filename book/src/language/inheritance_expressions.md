@@ -135,3 +135,30 @@ The contents of those two files would be inserted at the invocation of *include*
     </body>
 </html>
 ```
+
+A new feature that Stilts adds to include expressions is the ability to specify arguments.
+By default, include expressions will drag in all the variables required by them into the base
+template. You can however avoid this by setting the values inside the template.
+
+The arguments are simply added on at the end between a pair of curly braces, and it follows the
+rust struct literal syntax.
+
+```stilts
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <!--A bunch of metadata and script stuff-->
+    </head>
+    <body>
+        <header>{% include "header.html" {
+            links: &[
+                ("Home", "/"),
+                ("Social Media", "http://external.website")
+            ],
+            active: "/"
+        } %}</header>
+        <main>{% block main %}{% end %}</main>
+        <footer>{% include "socials.html" %}</footer>
+    </body>
+</html>
+```

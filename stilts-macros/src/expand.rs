@@ -18,7 +18,7 @@ fn format_err(e: stilts_lang::Error) -> syn::Error {
     #[cfg(feature = "narratable")]
     let handler = miette::NarratableReportHandler::new();
     #[cfg(feature = "fancy")]
-    let handler = miette::GraphicalReportHandler::new_themed(miette::GraphicalTheme::unicode());
+    let handler = miette::GraphicalReportHandler::new_themed(miette::GraphicalTheme::unicode_nocolor());
     #[cfg(any(feature = "narratable", feature = "fancy"))]
     {
         let mut s = String::new();
@@ -336,14 +336,25 @@ impl<'a> TemplateRef<'a> {
             }
             Item::Expr(Expr::Extends(_)) => Ok(quote! {}),
             Item::Expr(Expr::SuperCall) => Ok(quote! {}),
-            Item::Expr(Expr::Include(reference)) => {
+            Item::Expr(Expr::Include { reference, args }) => {
                 let attrs = TemplateAttrs {
                     source: TemplateSource::new_file(reference),
                     escape: self.escape_override.clone(),
                     trim: self.trim_override,
                 };
                 let graph = Graph::load(cfg, &attrs)?;
-                graph.expand(cfg)
+                let included = graph.expand(cfg)?;
+                let arg_assignments = args.into_iter()
+                    .map(|arg| {
+                        let syn::FieldValue { member, expr, .. } = arg;
+                        quote!{let #member = #expr;}
+                    });
+                Ok(quote! {
+                    {
+                        #(#arg_assignments)*
+                        #included
+                    }
+                })
             }
             Item::Expr(Expr::MacroCall { name, args }) => {
                 let writer = &cfg.writer_name;
