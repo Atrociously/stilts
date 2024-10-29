@@ -12,8 +12,7 @@ use winnow::Parser;
 use crate::error::{expect_end, At, Msg};
 use crate::state::State;
 use crate::types::{
-    Expr, ForExpr, IfBranch, Item, ItemBlock, ItemFor, ItemIf, ItemMacro, ItemMatch,
-    MacroCallExpr, MacroExpr, MatchArm, MatchArmExpr, Root,
+    Expr, ForExpr, IfBranch, IncludesArgs, Item, ItemBlock, ItemFor, ItemIf, ItemMacro, ItemMatch, MacroCallExpr, MacroExpr, MatchArm, MatchArmExpr, Root
 };
 use crate::{state::Delims, Input};
 use crate::{Error, Located};
@@ -249,11 +248,17 @@ pub fn item_expr<'i>(delims: &Delims) -> impl Parser<Input<'i>, Expr<'i>, Error<
             .context(At(input.here()))
             .parse_next(input)
     }
-    fn expr_include<'i>(input: &mut Located<'i>) -> PResult<'i, Cow<'i, str>> {
-        preceded(("include", cut_err(space1)), cut_err(string_contents))
+    fn expr_include<'i>(input: &mut Located<'i>) -> PResult<'i, Expr<'i>> {
+        let reference = preceded(("include", cut_err(space1)), cut_err(string_contents))
             .context(Msg("unable to parse include expression"))
             .context(At(input.here()))
-            .parse_next(input)
+            .parse_next(input)?;
+        let args = if preceded(space1::<_, Error<'i>>, peek('{')).parse_next(input).is_ok() {
+            cut_err(parse_syn).parse_next(input)?
+        } else {
+            IncludesArgs { args: syn::punctuated::Punctuated::new() }
+        }.args;
+        Ok(Expr::Include { reference, args })
     }
 
     fn expr_super_call<'i>(input: &mut Located<'i>) -> PResult<'i, ()> {
@@ -269,7 +274,7 @@ pub fn item_expr<'i>(delims: &Delims) -> impl Parser<Input<'i>, Expr<'i>, Error<
         delims,
         alt((
             expr_extends.map(Expr::Extends),
-            expr_include.map(Expr::Include),
+            expr_include,
             expr_super_call.map(|_| Expr::SuperCall),
             expr_macro_call.map(|call| Expr::MacroCall {
                 name: call.name,
@@ -316,19 +321,19 @@ where
         .parse_next(input)
 }
 
-pub fn string_contents<'i, I, E>(input: &mut I) -> winnow::PResult<Cow<'i, str>, E>
+pub fn string_contents<'i, I>(input: &mut I) -> winnow::PResult<Cow<'i, str>, Error<'i>>
 where
-    I: Stream<Token = char> + StreamIsPartial + Compare<char> + 'i,
+    I: Stream<Token = char> + StreamIsPartial + Compare<char> + AsRef<Located<'i>> + 'i,
     I::Slice: AsRef<Located<'i>> + Stream + StreamIsPartial + Compare<char>,
     <I::Slice as Stream>::Token: AsChar + Copy,
-    E: ParserError<I> + ParserError<I::Slice>,
 {
     static AHO: LazyLock<AhoCorasick> =
         LazyLock::new(|| AhoCorasick::new(["\\\"", "\\\\"]).unwrap());
     const CHARS: [char; 2] = ['"', '\\'];
-    let s = preceded(
+    let s = winnow::combinator::delimited(
         '"',
         take_escaped(take(1u8).and_then(none_of(CHARS)), '\\', one_of(CHARS)),
+        cut_err('"').context(Error::new("No closing string quote").span(*input.as_ref()))
     )
     .parse_next(input)?;
 

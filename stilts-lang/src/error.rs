@@ -6,7 +6,7 @@ use winnow::{error::{ErrMode, ErrorKind}, stream::Stream};
 use crate::Located;
 
 /// The default error type for parsing
-#[derive(Debug, thiserror::Error, Diagnostic)]
+#[derive(Clone, Debug, thiserror::Error, Diagnostic)]
 #[error("{msg}")]
 pub struct Error<'i> {
     msg: Cow<'i, str>,
@@ -15,6 +15,8 @@ pub struct Error<'i> {
     span: Option<SourceSpan>,
     #[source_code]
     source_code: Cow<'i, str>,
+    #[related]
+    related: Vec<Self>,
     pub(crate) kind: Option<ErrorKind>
 }
 
@@ -26,6 +28,7 @@ impl<'i> Error<'i> {
             label: Cow::Borrowed("here"),
             span: None,
             source_code: Cow::Borrowed(""),
+            related: Vec::new(),
             kind: None,
         }
     }
@@ -88,6 +91,9 @@ impl<'i> Error<'i> {
             msg: self.msg.into_owned().into(),
             label: self.label.into_owned().into(),
             source_code: self.source_code.into_owned().into(),
+            related: self.related.into_iter()
+                .map(Self::into_owned)
+                .collect(),
             ..self
         }
     }
@@ -145,6 +151,18 @@ impl<'i, I: Stream> winnow::error::AddContext<I, At<'i>> for Error<'i> {
         context: At<'i>,
     ) -> Self {
         self.span(context.0)
+    }
+}
+
+impl<'i, I: Stream> winnow::error::AddContext<I, Self> for Error<'i> {
+    fn add_context(
+        mut self,
+        _input: &I,
+        _token_start: &<I as Stream>::Checkpoint,
+        context: Self,
+    ) -> Self {
+        self.related.push(context);
+        self
     }
 }
 

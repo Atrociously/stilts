@@ -81,7 +81,10 @@ pub struct ItemMacro<'i> {
 #[cfg_attr(any(test, feature = "extra-traits"), derive(Clone, Debug, PartialEq, Eq, Hash))]
 pub enum Expr<'i> {
     Extends(Cow<'i, str>),
-    Include(Cow<'i, str>),
+    Include {
+        reference: Cow<'i, str>,
+        args: syn::punctuated::Punctuated<syn::FieldValue, syn::Token![,]>,
+    },
     SuperCall,
     MacroCall {
         name: syn::Ident,
@@ -156,7 +159,10 @@ impl<'i> Expr<'i> {
     pub fn into_owned(self) -> Expr<'static> {
         match self {
             Self::Extends(v) => Expr::Extends(v.into_owned().into()),
-            Self::Include(v) => Expr::Include(v.into_owned().into()),
+            Self::Include { reference: name, args } => Expr::Include {
+                reference: name.into_owned().into(),
+                args,
+            },
             Self::SuperCall => Expr::SuperCall,
             Self::MacroCall { name, args } => Expr::MacroCall { name, args },
             Self::Stmt(v) => Expr::Stmt(v),
@@ -176,6 +182,10 @@ pub(crate) struct ForExpr {
 pub(crate) struct MatchArmExpr {
     pub pat: syn::Pat,
     pub guard: Option<(syn::Token![if], syn::Expr)>,
+}
+
+pub(crate) struct IncludesArgs {
+    pub args: syn::punctuated::Punctuated<syn::FieldValue, syn::Token![,]>,
 }
 
 pub(crate) struct MacroExpr {
@@ -210,6 +220,15 @@ impl syn::parse::Parse for MatchArmExpr {
                 None
             },
         })
+    }
+}
+
+impl syn::parse::Parse for IncludesArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let content;
+        syn::braced!(content in input);
+        let args = syn::punctuated::Punctuated::parse_terminated(&content)?;
+        Ok(Self { args })
     }
 }
 

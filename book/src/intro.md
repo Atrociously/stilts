@@ -8,7 +8,7 @@ makes use of rust's compile time to keep templates safe and correct.
 
 This is a manual for using the _Stilts_ templating engine in code.
 It will cover all the details necessary for a programmer to use and even
-abuse the engine to acomplish their goals. This documentation will not cover
+abuse the engine to accomplish their goals. This documentation will not cover
 certain aspects of related materials when it would detract from the explanation
 of a _Stilts_ concept. It will however link to reading on said related materials
 whenever possible. Ideally this document can be understood by anybody even people who
@@ -44,7 +44,7 @@ by some inputs, then Stilts can work well for that.
    - Stilts is focused on making development in rust as simple and flexible as possible.
      Therefore, you are able to write arbitrary rust code anywhere inside your templates.
 3. **Performant render times**
-   - This while not a primary focus of the Stilts engine is a nice benefit you
+   - This, while not a primary focus of the Stilts engine, is a nice benefit you
      get when most of the work is done at compile time see [performance](./performance.md).
 
 ### Drawbacks
