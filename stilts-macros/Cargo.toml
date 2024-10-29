@@ -1,6 +1,6 @@
 [package]
 name = "stilts-macros"
-version = "0.3.1"
+version = "0.3.2"
 description = "The macros that generate the templates for stilts"
 edition = "2021"
 license = "MIT"
