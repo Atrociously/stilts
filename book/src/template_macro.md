@@ -27,6 +27,7 @@ Either **path** or **content** must be specified
 - **content**: The direct contents of the template provided by a string literal
 - **escape**: Override the escaper detected by file extension with a specified one
 - **trim**: Override the trim behavior defined in your config
+- **block**: Only use the contents of a specific block
 
 ### Examples:
 Standard use case
@@ -63,3 +64,11 @@ struct MyOverridenTemplate {
     my_data: String,
 }
 ```
+
+Only using a single block
+```rust,numbered
+#[derive(Template)]
+#[stilts(path = "index.html", block = "popup")]
+struct MyTemplate {
+    my_data: String,
+}

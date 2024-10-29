@@ -46,9 +46,13 @@ The same expression is used in parent and child templates to perform their relat
 defining a block means providing a section that any child templates **can** override, while in the
 child template defining a block means overridding the block that is defined by the parent.
 
-A *block* only works in conjunction with the *extends* expressions to provide an inheritance structure to reduce
+A *block* works in conjunction with the *extends* expressions to provide an inheritance structure to reduce
 template code duplication. This is best accomplished by writing most boilerplate into a base template that other
 child templates are able to extend and overwrite pieces of to create their own functionality.
+
+It is also possible to use *blocks* to render only parts of a larger template, by
+specifying the `block` attrimute on the `template` macro, alongside `path` or
+`content`. This can be useful for partial updates.
 
 ### base.html
 A parent/base template defines as many blocks as it wants wherever it wants. It can even put code

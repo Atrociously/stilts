@@ -60,6 +60,7 @@ pub struct TemplateAttrs {
     pub source: TemplateSource,
     pub escape: Option<Path>,
     pub trim: Option<bool>,
+    pub block: Option<String>,
 }
 
 impl TemplateAttrs {
@@ -71,6 +72,7 @@ impl TemplateAttrs {
         let mut source = None;
         let mut escape = None;
         let mut trim = None;
+        let mut block = None;
 
         for attr in attrs {
             attr.parse_nested_meta(|meta| {
@@ -94,6 +96,11 @@ impl TemplateAttrs {
                     let value: LitBool = value.parse()?;
                     trim = Some(value.value)
                 }
+                if meta.path.is_ident("block") {
+                    let value = meta.value()?;
+                    let value: LitStr = value.parse()?;
+                    block = Some(value.value());
+                }
                 Ok(())
             })?;
         }
@@ -103,6 +110,7 @@ impl TemplateAttrs {
             source,
             escape,
             trim,
+            block,
         })
     }
 }
