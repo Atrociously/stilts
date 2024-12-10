@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::sync::LazyLock;
 
 use aho_corasick::AhoCorasick;
-use winnow::ascii::{multispace0, space0, space1, take_escaped};
+use winnow::ascii::{multispace0, multispace1, take_escaped};
 use winnow::combinator::{alt, cut_err, eof, opt, peek, preceded, repeat, repeat_till, terminated, trace};
 use winnow::error::ParserError;
 use winnow::stream::{AsChar, Compare, Stream, StreamIsPartial};
@@ -72,7 +72,7 @@ pub fn item_block<'i>(delims: &Delims) -> impl Parser<Input<'i>, ItemBlock<'i>, 
     trace("block", move |input: &mut Input<'i>| {
         let (name, span) = delimited(
             &delims,
-            preceded(("block", cut_err(space1)), cut_err(ident)),
+            preceded(("block", cut_err(multispace1)), cut_err(ident)),
         )
         .with_taken()
         .context(Msg("unable to parse block expression"))
@@ -100,7 +100,7 @@ pub fn item_for<'i>(delims: &Delims) -> impl Parser<Input<'i>, ItemFor<'i>, Erro
     trace("for", move |input: &mut _| {
         let (open, span) = delimited(
             &delims,
-            preceded(peek(("for", space1)), cut_err(parse_syn::<ForExpr>)),
+            preceded(peek(("for", multispace1)), cut_err(parse_syn::<ForExpr>)),
         )
         .with_taken()
         .parse_next(input)?;
@@ -123,7 +123,7 @@ pub fn item_if<'i>(delims: &Delims) -> impl Parser<Input<'i>, ItemIf<'i>, Error<
     trace("if", move |input: &mut _| {
         let (cond, span) = delimited(
             &delims,
-            preceded(("if", space1), cut_err(parse_syn::<syn::Expr>)),
+            preceded(("if", multispace1), cut_err(parse_syn::<syn::Expr>)),
         )
         .with_taken()
         .parse_next(input)?;
@@ -147,7 +147,7 @@ fn if_branch<'i>(delims: &Delims) -> impl Parser<Input<'i>, IfBranch<'i>, Error<
             move |input: &mut _| {
                 let (cond, span) = delimited(
                     &delims1,
-                    preceded(("else", space1, "if", space1), cut_err(parse_syn)),
+                    preceded(("else", multispace1, "if", multispace1), cut_err(parse_syn)),
                 )
                 .with_taken()
                 .parse_next(input)?;
@@ -161,7 +161,7 @@ fn if_branch<'i>(delims: &Delims) -> impl Parser<Input<'i>, IfBranch<'i>, Error<
                 })
             },
             move |input: &mut _| {
-                let span = delimited(&delims2, ("else", space0))
+                let span = delimited(&delims2, ("else", multispace0))
                     .take()
                     .parse_next(input)?;
                 let content = items_till(&delims2, end(&delims2))
@@ -180,7 +180,7 @@ pub fn item_match<'i>(delims: &Delims) -> impl Parser<Input<'i>, ItemMatch<'i>, 
     trace("match", move |input: &mut _| {
         let delims2 = delims.clone();
         let (expr, span) = terminated(
-            delimited(&delims, preceded(("match", space1), cut_err(parse_syn))),
+            delimited(&delims, preceded(("match", multispace1), cut_err(parse_syn))),
             multispace0,
         )
         .with_taken()
@@ -190,7 +190,7 @@ pub fn item_match<'i>(delims: &Delims) -> impl Parser<Input<'i>, ItemMatch<'i>, 
             trace("arm", move |input: &mut _| {
                 let (arm, span) = delimited(
                     &delims2,
-                    preceded(("when", space1), cut_err(parse_syn::<MatchArmExpr>)),
+                    preceded(("when", multispace1), cut_err(parse_syn::<MatchArmExpr>)),
                 )
                 .with_taken()
                 .parse_next(input)?;
@@ -218,7 +218,7 @@ pub fn item_match<'i>(delims: &Delims) -> impl Parser<Input<'i>, ItemMatch<'i>, 
 }
 
 fn match_arm_test<'i>(delims: &Delims) -> impl Parser<Input<'i>, (), Error<'i>> {
-    delimited(delims, ("when", space1)).void()
+    delimited(delims, ("when", multispace1)).void()
 }
 
 pub fn item_macro<'i>(delims: &Delims) -> impl Parser<Input<'i>, ItemMacro<'i>, Error<'i>> {
@@ -228,7 +228,7 @@ pub fn item_macro<'i>(delims: &Delims) -> impl Parser<Input<'i>, ItemMacro<'i>, 
         move |input: &mut _| {
             let (mcr, span) = delimited(
                 &delims,
-                preceded(("macro", space1), cut_err(parse_syn::<MacroExpr>)),
+                preceded(("macro", multispace1), cut_err(parse_syn::<MacroExpr>)),
             ).with_taken().parse_next(input)?;
             let content = items_till(&delims, end(&delims)).map(|v| v.0).parse_next(input)
                 .map_err(expect_end(span))?;
@@ -243,17 +243,17 @@ pub fn item_macro<'i>(delims: &Delims) -> impl Parser<Input<'i>, ItemMacro<'i>, 
 
 pub fn item_expr<'i>(delims: &Delims) -> impl Parser<Input<'i>, Expr<'i>, Error<'i>> {
     fn expr_extends<'i>(input: &mut Located<'i>) -> PResult<'i, Cow<'i, str>> {
-        preceded(("extends", cut_err(space1)), cut_err(string_contents))
+        preceded(("extends", cut_err(multispace1)), cut_err(string_contents))
             .context(Msg("unable to parse extends expression"))
             .context(At(input.here()))
             .parse_next(input)
     }
     fn expr_include<'i>(input: &mut Located<'i>) -> PResult<'i, Expr<'i>> {
-        let reference = preceded(("include", cut_err(space1)), cut_err(string_contents))
+        let reference = preceded(("include", cut_err(multispace1)), cut_err(string_contents))
             .context(Msg("unable to parse include expression"))
             .context(At(input.here()))
             .parse_next(input)?;
-        let args = if preceded(space1::<_, Error<'i>>, peek('{')).parse_next(input).is_ok() {
+        let args = if preceded(multispace1::<_, Error<'i>>, peek('{')).parse_next(input).is_ok() {
             cut_err(parse_syn).parse_next(input)?
         } else {
             IncludesArgs { args: syn::punctuated::Punctuated::new() }
@@ -262,12 +262,12 @@ pub fn item_expr<'i>(delims: &Delims) -> impl Parser<Input<'i>, Expr<'i>, Error<
     }
 
     fn expr_super_call<'i>(input: &mut Located<'i>) -> PResult<'i, ()> {
-        ("super", "(", space0, ")", space0).void()
+        ("super", "(", multispace0, ")", multispace0).void()
             .parse_next(input)
     }
 
     fn expr_macro_call<'i>(input: &mut Located<'i>) -> PResult<'i, MacroCallExpr> {
-        preceded(("call", space1), cut_err(parse_syn)).parse_next(input)
+        preceded(("call", multispace1), cut_err(parse_syn)).parse_next(input)
     }
 
     trace("expr", delimited(
@@ -352,13 +352,13 @@ where
         + Compare<char>
         + for<'a> Compare<&'a str>
         + for<'a> winnow::stream::FindSlice<&'a str>,
-    I::Token: AsChar,
+    I::Token: AsChar + Clone,
     E: ParserError<I>,
     P: Parser<<I as Stream>::Slice, O, E>,
 {
     let delims = delims.clone();
     move |input| {
-        (delims.open(), space0).parse_next(input)?;
+        (delims.open(), multispace0).parse_next(input)?;
         let mut content = take_until(1.., delims.close()).parse_next(input)?;
         delims.close().parse_next(input)?;
         parser.parse_next(&mut content)
