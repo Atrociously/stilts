@@ -30,3 +30,12 @@ where
         self.to_string().to_uppercase()
     }
 }
+
+/// Wrapper around a template which implements [`Display`](std::fmt::Display)
+pub struct DisplayTemplate<'a, T: ?Sized>(pub &'a T);
+
+impl<'a, T: crate::Template> std::fmt::Display for DisplayTemplate<'a, T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}

@@ -95,7 +95,7 @@ pub use extensions::{DebugExt, DisplayExt, SerializeExt};
 ///     my_data: String,
 /// }
 /// ```
-/// 
+///
 /// Only using a single block
 /// ```ignore
 /// #[derive(Template)]
@@ -128,5 +128,10 @@ pub trait Template {
 
         self.fmt(&mut out)?;
         Ok(out)
+    }
+
+    /// Create a type that implements [`Display`](std::fmt::Display) using the template [`fmt`](Template::fmt)
+    fn display(&self) -> extensions::DisplayTemplate<'_, Self> {
+        extensions::DisplayTemplate(self)
     }
 }
