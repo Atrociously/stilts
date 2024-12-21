@@ -9,7 +9,7 @@ trait implementation.
 In the instructions the `path` argument was used to load a template from a file.
 This is the most common way of defining templates. Arguments are provided using
 the same macro syntax and the `stilts` prefix followed by the args to provide.
-```rust
+```rust,numbered
 #[derive(Template)]            // Use the derive macro
 #[stilts(path = "index.html")] // Provides arguments to the derive macro
 struct Example;                // The item which the trait is implemented on
@@ -27,7 +27,7 @@ Either **path** or **content** must be specified
 - **content**: The direct contents of the template provided by a string literal
 - **escape**: Override the escaper detected by file extension with a specified one
 - **trim**: Override the trim behavior defined in your config
-- **block**: Only use the contents of a specific block
+- **block**: Only render the contents of a specific block within the template specified by path or content
 
 ### Examples:
 Standard use case
@@ -65,7 +65,7 @@ struct MyOverridenTemplate {
 }
 ```
 
-Only using a single block
+Only rendering a single block
 ```rust,numbered
 #[derive(Template)]
 #[stilts(path = "index.html", block = "popup")]

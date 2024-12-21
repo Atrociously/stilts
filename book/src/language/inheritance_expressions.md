@@ -50,14 +50,10 @@ A *block* works in conjunction with the *extends* expressions to provide an inhe
 template code duplication. This is best accomplished by writing most boilerplate into a base template that other
 child templates are able to extend and overwrite pieces of to create their own functionality.
 
-It is also possible to use *blocks* to render only parts of a larger template, by
-specifying the `block` attrimute on the `template` macro, alongside `path` or
-`content`. This can be useful for partial updates.
-
-### base.html
 A parent/base template defines as many blocks as it wants wherever it wants. It can even put code
 into those blocks to provide default data in case a child template does not override the block.
 
+#### base.html
 ```stilts
 <!DOCTYPE html>
 <html lang="en">
@@ -73,11 +69,11 @@ into those blocks to provide default data in case a child template does not over
 </html>
 ```
 
-### child.html
-
 The child template when defining the same blocks is now overriding the blocks as defined
 by the parent template. This means the code inside the child blocks is **essentially** injected
 into the parent at the block definition.
+
+#### child.html
 ```stilts
 {% extends "base.html" %}
 
@@ -97,11 +93,11 @@ can only be used inside blocks which allows the child template to bring back the
 of the parent block. If *super* is not called the content within the block defined by the
 parent is completely overriden by the child template.
 
-### Output
 This is what the output of rendering the child template would look like. Since the child
 template used the *super* expression in the `head` block the content of the parent template
 was preserved while rendering the child.
 
+#### Output
 ```html
 <!DOCTYPE html>
 <html lang="en">
@@ -115,6 +111,32 @@ was preserved while rendering the child.
     </body>
 </html>
 ```
+
+### Partial Rendering
+
+Another special feature of blocks within a template is their ability to be rendered independently.
+Take the previous `base.html` as an example to declare that template in a rust app the code would
+look like the following.
+
+```rust,numbered
+#[derive(Template)]
+#[stilts(path = "base.html")]
+struct BaseTemplate {}
+```
+
+However there is commonly a need to render pieces of a larger template as a component. Breaking
+very small pieces of template out into another file can lead to lots of small files being difficult
+to manage. So to aleviate this issue stilts allows defining templates which only render a single block.
+
+```rust,numbered
+#[derive(Template)]
+#[stilts(path = "base.html", block = "body")]
+struct BodyOnly {}
+```
+
+This technique is useful for partial updates of a webpage when smaller components
+need to be re-rendered server side. For larger or more complex components used in 
+multiple places the `include` expression should be preffered.
 
 ## Include
 ---
