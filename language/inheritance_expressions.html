@@ -1,0 +1,363 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Inheritance Expressions - Stilts</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../theme/lines.css">
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Stilts</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/Atrociously/stilts" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="inheritance-expressions"><a class="header" href="#inheritance-expressions">Inheritance Expressions</a></h1>
+<p>Many good templating engines have some form of inheritance. Or a method by which templates can be built upon
+one another. Thus increasing reusability, and reducing repetition. Stilts implements a system based upon the
+template engines that inspired it.</p>
+<h2 id="extends"><a class="header" href="#extends">Extends</a></h2>
+<hr />
+<p>The <em>extends</em> expression informs the Stilts engine that the current template <strong>extends</strong>
+the functionality of another template. The current template becomes a "child" of the
+template in the <em>extends</em> expression. A child template is any template which invokes the <em>extends</em> expression
+in order to inherit from a "parent" template. A parent template is any template which has child templates that extend
+from it. A template can be at once a parent and a child template if both those conditions are met.</p>
+<p>The <strong>extending</strong> of functionality in the simplest case means that the content of the current template
+is added to the end of the parent template and that is how it gets rendered. It does however get more
+complicated with <em>block</em> expressions.</p>
+<h3 id="basehtml"><a class="header" href="#basehtml">base.html</a></h3>
+<pre><code class="language-stilts">Hello from the parent!
+</code></pre>
+<h3 id="childhtml"><a class="header" href="#childhtml">child.html</a></h3>
+<pre><code class="language-stilts">{% extends "base.html" %}
+
+Hello from the child!
+</code></pre>
+<h3 id="output"><a class="header" href="#output">Output</a></h3>
+<p>This is what the output of rendering the child template would look like</p>
+<pre><code>Hello from the parent!
+
+Hello from the child!
+</code></pre>
+<h2 id="block"><a class="header" href="#block">Block</a></h2>
+<hr />
+<p>Distinct from the concept of <em>block expressions</em> a stilts <em>inheritance block</em> is used to define secions of templates
+which can both be overriden by a potential child template and overrides a potential parent.</p>
+<p>The same expression is used in parent and child templates to perform their related tasks. On the parent
+defining a block means providing a section that any child templates <strong>can</strong> override, while in the
+child template defining a block means overridding the block that is defined by the parent.</p>
+<p>A <em>block</em> works in conjunction with the <em>extends</em> expressions to provide an inheritance structure to reduce
+template code duplication. This is best accomplished by writing most boilerplate into a base template that other
+child templates are able to extend and overwrite pieces of to create their own functionality.</p>
+<p>A parent/base template defines as many blocks as it wants wherever it wants. It can even put code
+into those blocks to provide default data in case a child template does not override the block.</p>
+<h4 id="basehtml-1"><a class="header" href="#basehtml-1">base.html</a></h4>
+<pre><code class="language-stilts">&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+    &lt;head&gt;
+        {% block head %}
+        &lt;title&gt;This is extensible!&lt;/title&gt;
+        {% end %}
+    &lt;/head&gt;
+    &lt;body&gt;
+        {% block body %}
+        {% end %}
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p>The child template when defining the same blocks is now overriding the blocks as defined
+by the parent template. This means the code inside the child blocks is <strong>essentially</strong> injected
+into the parent at the block definition.</p>
+<h4 id="childhtml-1"><a class="header" href="#childhtml-1">child.html</a></h4>
+<pre><code class="language-stilts">{% extends "base.html" %}
+
+{% block head %}
+    {% super() %} &lt;!-- Take note of this expression it is explained below --&gt;
+    &lt;script&gt;
+    &lt;/script&gt;
+{% end %}
+
+{% block body %}
+    &lt;button&gt;Hello World!&lt;/button&gt;
+{% end %}
+</code></pre>
+<p>The <code>{% super() %}</code> expression is a special expression which
+can only be used inside blocks which allows the child template to bring back the content
+of the parent block. If <em>super</em> is not called the content within the block defined by the
+parent is completely overriden by the child template.</p>
+<p>This is what the output of rendering the child template would look like. Since the child
+template used the <em>super</em> expression in the <code>head</code> block the content of the parent template
+was preserved while rendering the child.</p>
+<h4 id="output-1"><a class="header" href="#output-1">Output</a></h4>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+    &lt;head&gt;
+        &lt;title&gt;This is extensible!&lt;/title&gt;
+        &lt;script&gt;
+        &lt;/script&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;button&gt;Hello World!&lt;/button&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<h3 id="partial-rendering"><a class="header" href="#partial-rendering">Partial Rendering</a></h3>
+<p>Another special feature of blocks within a template is their ability to be rendered independently.
+Take the previous <code>base.html</code> as an example to declare that template in a rust app the code would
+look like the following.</p>
+<pre><code class="language-rust numbered">#[derive(Template)]
+#[stilts(path = "base.html")]
+struct BaseTemplate {}</code></pre>
+<p>However there is commonly a need to render pieces of a larger template as a component. Breaking
+very small pieces of template out into another file can lead to lots of small files being difficult
+to manage. So to aleviate this issue stilts allows defining templates which only render a single block.</p>
+<pre><code class="language-rust numbered">#[derive(Template)]
+#[stilts(path = "base.html", block = "body")]
+struct BodyOnly {}</code></pre>
+<p>This technique is useful for partial updates of a webpage when smaller components
+need to be re-rendered server side. For larger or more complex components used in
+multiple places the <code>include</code> expression should be preffered.</p>
+<h2 id="include"><a class="header" href="#include">Include</a></h2>
+<hr />
+<p>An <em>include</em> expression is used to add the content from another template into a template
+at a specified point in the template.</p>
+<p>For example say you have a base template that all other templates inherit from
+you can still break out some bits into smaller chunks specified in other files.
+In this example we include two other template files <code>header.html</code>, and <code>socials.html</code>.
+The contents of those two files would be inserted at the invocation of <em>include</em>.</p>
+<pre><code class="language-stilts">&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+    &lt;head&gt;
+        &lt;!--A bunch of metadata and script stuff--&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;header&gt;{% include "header.html" %}&lt;/header&gt;
+        &lt;main&gt;{% block main %}{% end %}&lt;/main&gt;
+        &lt;footer&gt;{% include "socials.html" %}&lt;/footer&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p>A new feature that Stilts adds to include expressions is the ability to specify arguments.
+By default, include expressions will drag in all the variables required by them into the base
+template. You can however avoid this by setting the values inside the template.</p>
+<p>The arguments are simply added on at the end between a pair of curly braces, and it follows the
+rust struct literal syntax.</p>
+<pre><code class="language-stilts">&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+    &lt;head&gt;
+        &lt;!--A bunch of metadata and script stuff--&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;header&gt;{% include "header.html" {
+            links: &amp;[
+                ("Home", "/"),
+                ("Social Media", "http://external.website")
+            ],
+            active: "/"
+        } %}&lt;/header&gt;
+        &lt;main&gt;{% block main %}{% end %}&lt;/main&gt;
+        &lt;footer&gt;{% include "socials.html" %}&lt;/footer&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../language/control_expressions.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../configuration.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../language/control_expressions.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../configuration.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/highlightjs-line-numbers.min.js"></script>
+        <script src="../theme/linenum.js"></script>
+        <script src="../vis/plotly.min.js"></script>
+        <script src="../vis/boxit.js"></script>
+
+
+    </div>
+    </body>
+</html>
