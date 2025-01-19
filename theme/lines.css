@@ -1,0 +1,15 @@
+.hljs-ln {
+    margin: 0;
+}
+
+.hljs-ln tr > :first-child {
+    padding-right: 0.4em;
+}
+
+.hljs-ln td {
+    border: none;
+}
+
+:is(.hljs, .tree) {
+    line-height: 1.37;
+}

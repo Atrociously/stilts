@@ -1,0 +1,3 @@
+book/theme/highlight.js linguist-vendored
+book/theme/highlightjs-line-numbers.min.js linguist-vendored
+book/vis/plotly.min.js linguist-vendored

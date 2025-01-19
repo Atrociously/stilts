@@ -1,0 +1,1079 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Stilts</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/lines.css">
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Stilts</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/Atrociously/stilts" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="stilts"><a class="header" href="#stilts">Stilts</a></h1>
+<p><em>Stilts</em> is a templating engine designed for the rust programming language that
+makes use of rust's compile time to keep templates safe and correct.</p>
+<h2 id="about-this-book"><a class="header" href="#about-this-book">About This "Book"</a></h2>
+<hr />
+<p>This is a manual for using the <em>Stilts</em> templating engine in code.
+It will cover all the details necessary for a programmer to use and even
+abuse the engine to accomplish their goals. This documentation will not cover
+certain aspects of related materials when it would detract from the explanation
+of a <em>Stilts</em> concept. It will however link to reading on said related materials
+whenever possible. Ideally this document can be understood by anybody even people who
+fall outside the target audience.</p>
+<h3 id="target-audience"><a class="header" href="#target-audience">Target Audience</a></h3>
+<ul>
+<li>A <a href="https://www.rust-lang.org/">Rust</a> programmer.
+<ul>
+<li>If not you'll want to have <a href="https://doc.rust-lang.org/stable/book/">rust book</a> as a reference.</li>
+</ul>
+</li>
+<li>Needs a <a href="https://en.wikipedia.org/wiki/Template_processor">Template Engine</a>
+usually to write HTML for a website, but Stilts works in other use cases as well.</li>
+</ul>
+<h2 id="use-cases"><a class="header" href="#use-cases">Use Cases</a></h2>
+<hr />
+<p>Stilts is primarily designed for templating HTML in web projects and has default settings
+configured to cater to that use case. However, it certainly can be used and modified to
+serve any kind of templating purpose. As with any tool or library the design decisions
+made in Stilts require making certain tradeoffs.</p>
+<p>Stilts is designed for use in systems where templates are tightly coupled with code.
+The most common case is web design, but there are other cases where this tight coupling
+can be useful. For instance a project which generates some generic code based on a few
+parameters. If the code generated follows a specific rigid structure and is tweaked
+by some inputs, then Stilts can work well for that.</p>
+<h3 id="benefits"><a class="header" href="#benefits">Benefits</a></h3>
+<ol>
+<li><strong>Compile time guarantees</strong>
+<ul>
+<li>Stilts generates rust code based off of the templates you write which
+is then run through the rust compiler meaning you maintain all the guarantees
+provided by the rust compiler.</li>
+</ul>
+</li>
+<li><strong>Pure rust inside templates</strong>
+<ul>
+<li>Stilts is focused on making development in rust as simple and flexible as possible.
+Therefore, you are able to write arbitrary rust code anywhere inside your templates.</li>
+</ul>
+</li>
+<li><strong>Performant render times</strong>
+<ul>
+<li>This, while not a primary focus of the Stilts engine, is a nice benefit you
+get when most of the work is done at compile time see <a href="./performance.html">performance</a>.</li>
+</ul>
+</li>
+</ol>
+<h3 id="drawbacks"><a class="header" href="#drawbacks">Drawbacks</a></h3>
+<ol>
+<li><strong>No creation of templates on the fly at runtime</strong>
+<ul>
+<li>This can be a big downside for many potential use cases. Many tools need to apply
+template rules to arbitrary text that is recieved at runtime, which Stilts
+simply cannot do due to its very nature.</li>
+</ul>
+</li>
+<li><strong>Longer iteration times</strong>
+<ul>
+<li>Iterating on your design is important especially when working with UI/UX, so impairing
+iteration times can be a big problem for some people. Stilts impairs iteration
+times by forcing your entire application to recompile when minor template changes
+need to be made. It is however possible to <a href="./design_iteration.html">reduce iterating friction</a>.</li>
+</ul>
+</li>
+<li><strong>No Cross Language support</strong>
+<ul>
+<li>Stilts is as rust first and only system. Similar projects could be made for other
+languages, but they would not follow the syntax or rules that rust enforces.
+As such if you are looking for a templating engine that can be used across multiple
+programming languages Stilts cannot fill that role. Look at something like
+<a href="https://jinja.palletsprojects.com">Jinja2</a>
+which has implementations in many languages with consistent syntax.</li>
+</ul>
+</li>
+</ol>
+<p>Stilts cannot perform runtime template creation / parsing, if you need that
+you should look for some other engines <a href="https://www.arewewebyet.org/topics/templating/">here</a>.
+Some notable runtime engines would include Tera, Handlebars, Liquid, and Minijinja.</p>
+<h2 id="important-mentions"><a class="header" href="#important-mentions">Important Mentions</a></h2>
+<hr />
+<p>The Stilts templating engine takes major inspiration from
+<a href="https://github.com/djc/askama">Askama</a>. Askama is a more mature
+library with more history and support backing it, which Stilts does not have.
+However, Stilts provides features that I believe are worth the change.</p>
+<p>It took a lot of research on procedural macros to figure out
+how to get this to work so big thanks to these resources.</p>
+<ul>
+<li><a href="https://github.com/dtolnay/proc-macro-workshop">Proc Macro Workshop</a></li>
+<li><a href="https://doc.rust-lang.org/reference/procedural-macros.html">Rust Reference</a></li>
+<li><a href="https://docs.rs/syn/latest/syn/">Syn Documentation</a></li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="getting-started"><a class="header" href="#getting-started">Getting Started</a></h1>
+<p>This section will cover instructions for using Stilts as your templating engine.
+These instructions are intended to provide more of an introduction into usage of Stilts,
+rather than a strict set of rules which must be followed. When followed these steps will lead
+to working code, but it is also important to play around and discover. One of the best learning
+tools is discovery.</p>
+<h2 id="how-to-create-templates"><a class="header" href="#how-to-create-templates">How to Create Templates</a></h2>
+<hr />
+<h3 id="requirements"><a class="header" href="#requirements">Requirements:</a></h3>
+<ul>
+<li><a href="https://www.rust-lang.org/tools/install">Rust Installed</a>
+This includes access to the following commands:
+<ul>
+<li>cargo</li>
+</ul>
+</li>
+<li>A text editor
+<ul>
+<li>(Optional) One that can be specialized for <a href="https://areweideyet.com/">coding rust</a></li>
+</ul>
+</li>
+<li>Access to a command prompt or <a href="https://en.wikipedia.org/wiki/Terminal_emulator">terminal emulator</a>
+<ul>
+<li>On Windows the default command prompt or powershell will work fine</li>
+<li>On Linux most distributions provide a default terminal emulator</li>
+<li>On macOS the terminal app will work</li>
+</ul>
+</li>
+</ul>
+<h3 id="instructions"><a class="header" href="#instructions">Instructions:</a></h3>
+<ol>
+<li>
+<p><strong>Create a new rust project.</strong>
+Depending on what kinds of tools you have installed there are a few ways to create a new rust project,
+the most common is by <a href="https://doc.rust-lang.org/cargo/guide/creating-a-new-project.html">using cargo</a>.</p>
+<p>To create a project with cargo open your terminal emulator
+Using the <code>cargo</code> tool create a new project for these instructions it will be called <code>hellostilts</code>.
+Run the following commands to create the project and enter the project directory.</p>
+<pre><code class="language-shell">cargo new hellostilts
+cd hellostilts
+</code></pre>
+<p>This will create a new directory named <code>hellostilts</code> with contents that look like this:</p>
+<pre><code class="language-text tree">📁 hellostilts/
+├── 📁 src/
+│   └── main.rs
+└── Cargo.toml
+</code></pre>
+</li>
+<li>
+<p><strong>Add Stilts as a Dependency.</strong>
+In order to make use out of <em>Stilts</em> you'll need to add it to your project dependencies.
+The simplest method is to once again use <code>cargo</code>.</p>
+<pre><code class="language-shell">cargo add stilts
+</code></pre>
+</li>
+<li>
+<p><strong>Create a Template Directory.</strong>
+Inside the new project create a directory named <code>templates</code>, this is where
+our future template code will be created. You can do this via a file explorer
+or using the command:</p>
+<pre><code class="language-shell">mkdir templates
+</code></pre>
+<p>After creating the folder your project folder should look like this:</p>
+<pre><code class="language-text tree">📁 hellostilts/
+├── 📁 src/
+│   └── main.rs
+├── 📁 templates/
+└── Cargo.toml
+</code></pre>
+</li>
+<li>
+<p><strong>Write the Template Code.</strong>
+Inside the newly created <code>templates</code> folder create and edit your first template file.
+It can be named anything but for these instructions it will be called <code>index.html</code>
+Write something like this into the file:</p>
+<pre><code class="language-stilts">&lt;ul&gt;
+{% for name in names %}
+    &lt;li&gt;Hello {% name %}!&lt;/li&gt;
+{% end %}
+&lt;/ul&gt;
+</code></pre>
+<p>Finally, your project directory should look like this which is all the required files:</p>
+<pre><code class="language-text tree">📁 hellostilts/
+├── 📁 src/
+│   └── main.rs
+├── 📁 templates/
+│   └── index.html
+└── Cargo.toml
+</code></pre>
+</li>
+<li>
+<p><strong>Write the Rust Code.</strong>
+Now you have created a template that can be understood by the <em>Stilts</em> engine.
+Next it just has to be used in code. In the <code>src/main.rs</code> file that was
+made when your project was created, write the following:</p>
+<pre><code class="language-rust">use stilts::Template;
+
+#[derive(Template)]
+#[stilts(path = "index.html")]
+struct Index&lt;'s&gt; {
+    names: Vec&lt;&amp;'s str&gt;
+}
+
+fn main() {
+    let template = Index {
+        names: vec![
+            "Jack",
+            "Grant",
+            "Amber",
+            "Alex"
+        ],
+    };
+    println!("{}", template.render().unwrap());
+}</code></pre>
+</li>
+<li>
+<p><strong>Run The Program.</strong>
+You have almost rendered a template! The final step is to compile and run the
+program. Thanks to <code>cargo</code> it is a simple single step!</p>
+<pre><code class="language-shell">cargo run
+</code></pre>
+<p>Now the output of that program should look a little something like:</p>
+<pre><code class="language-html">&lt;ul&gt;
+
+    &lt;li&gt;Hello Jack!&lt;/li&gt;
+
+    &lt;li&gt;Hello Grant!&lt;/li&gt;
+
+    &lt;li&gt;Hello Amber!&lt;/li&gt;
+
+    &lt;li&gt;Hello Alex!&lt;/li&gt;
+
+&lt;/ul&gt;
+</code></pre>
+</li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="the-template-macro"><a class="header" href="#the-template-macro">The Template Macro</a></h1>
+<p>In previous instructions the rust code made use of the template <a href="https://doc.rust-lang.org/book/ch19-06-macros.html">derive macro</a>.
+Invoking this macro is how our template code gets compiled into our rust code.
+This macro performs a few different things depending on what options are provided,
+however the core function is converting template code into a <a href="https://docs.rs/stilts/latest/stilts/trait.Template.html"><code>Template</code></a>
+trait implementation.</p>
+<p>In the instructions the <code>path</code> argument was used to load a template from a file.
+This is the most common way of defining templates. Arguments are provided using
+the same macro syntax and the <code>stilts</code> prefix followed by the args to provide.</p>
+<pre><code class="language-rust numbered">#[derive(Template)]            // Use the derive macro
+#[stilts(path = "index.html")] // Provides arguments to the derive macro
+struct Example;                // The item which the trait is implemented on</code></pre>
+<h2 id="macro-arguments"><a class="header" href="#macro-arguments">Macro Arguments</a></h2>
+<hr />
+<p>The template derive macro has multiple arguments which can be used to tweak
+how the macro generates the template code. Some arguments are used
+to override behavior described in the <a href="./configuration.html">configuration</a> section.</p>
+<p>Either <strong>path</strong> or <strong>content</strong> must be specified</p>
+<ul>
+<li><strong>path</strong>: The path relative to the template root of the template to render</li>
+<li><strong>content</strong>: The direct contents of the template provided by a string literal</li>
+<li><strong>escape</strong>: Override the escaper detected by file extension with a specified one</li>
+<li><strong>trim</strong>: Override the trim behavior defined in your config</li>
+<li><strong>block</strong>: Only render the contents of a specific block within the template specified by path or content</li>
+</ul>
+<h3 id="examples"><a class="header" href="#examples">Examples:</a></h3>
+<p>Standard use case</p>
+<pre><code class="language-rust numbered">#[derive(Template)]
+#[stilts(path = "index.html")]
+struct MyTemplate {
+    my_data: String,
+}</code></pre>
+<p>Using content instead of path</p>
+<pre><code class="language-rust numbered"><span class="boring">use stilts::Template;
+</span>#[derive(Template)]
+#[stilts(content = "My {% data %} Template")]
+struct MyInlineTemplate {
+    data: String,
+}</code></pre>
+<p>An example of setting the trim and escape to something else. This forces
+Stilts to not trim whitespace around expressions, and to use the <a href="https://docs.rs/stilts/latest/stilts/escaping/struct.Empty.html"><code>Empty</code></a>
+escaper which does no escaping at all.</p>
+<pre><code class="language-rust numbered"><span class="boring">use stilts::Template;
+</span>#[derive(Template)]
+#[stilts(
+    content = "Templates are fun",
+    trim = false,
+    escape = ::stilts::escaping::Empty
+)]
+struct MyOverridenTemplate {
+    my_data: String,
+}</code></pre>
+<p>Only rendering a single block</p>
+<pre><code class="language-rust numbered">#[derive(Template)]
+#[stilts(path = "index.html", block = "popup")]
+struct MyTemplate {
+    my_data: String,
+}</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="stilts-language"><a class="header" href="#stilts-language">Stilts Language</a></h1>
+<p>Stilts is a templating engine and as such supports many features
+that popular template engines support. Here is where each feature
+will be outlined and explained in detail with examples.</p>
+<h2 id="vocabulary"><a class="header" href="#vocabulary">Vocabulary</a></h2>
+<hr />
+<p>To <em>render</em> something in the context of a template is to write it into the data that is output
+by the engine that is the completed template and provided data.</p>
+<p>A template is made up of two components <em>content</em> and <em>expressions</em>.
+Expressions are further divided into multiple categories but they either
+control the logic of the template rendering or are replaced by values while rendering.
+The content of a template is the static text that is manipulated by the engine
+as defined by the expressions within that template.</p>
+<p>All <em>expressions</em> in Stilts are directly comparable to their rust counterparts.
+This allows nearly unlimited freedom in how users can manipulate their templates.</p>
+<p>In Stilts an <em>expression</em> is either a single piece of code surrounded by the delimiters <code>{%</code> and <code>%}</code> e.g.</p>
+<pre><code class="language-stilts">{% include "other.html" %}
+</code></pre>
+<p>Or it is a multi-expression <em>block</em> which has an opening and <em>ending expression</em></p>
+<pre><code class="language-stilts">{% if show_this %}
+    &lt;a&gt;&lt;/a&gt;
+{% end %}
+</code></pre>
+<p>Any item that requires an <code>{% end %}</code> <em>expression</em> will be referred to as a <em>block</em> in Stilts.</p>
+<h2 id="expression-table"><a class="header" href="#expression-table">Expression Table</a></h2>
+<hr />
+<p>Here is a quick reference to the different expressions Stilts has, if this is your first
+reading you should just continue reading and not skip ahead, this is provided as a convenience.</p>
+<ul>
+<li><a href="./language/rust_expressions.html">Rust</a>
+<ul>
+<li><a href="./language/rust_expressions.html#display">Display</a></li>
+<li><a href="./language/rust_expressions.html#statement">Statement</a></li>
+</ul>
+</li>
+<li><a href="./language/control_expressions.html">Control</a>
+<ul>
+<li><a href="./language/control_expressions.html#if">If</a></li>
+<li><a href="./language/control_expressions.html#match">Match</a></li>
+<li><a href="./language/control_expressions.html#for">For</a></li>
+<li><a href="./language/control_expressions.html#macro">Macro</a></li>
+</ul>
+</li>
+<li><a href="./language/inheritance_expressions.html">Inheritance</a>
+<ul>
+<li><a href="./language/inheritance_expressions#extends">Extends</a></li>
+<li><a href="./language/inheritance_expressions#block">Block</a></li>
+<li><a href="./language/inheritance_expressions#include">Include</a></li>
+</ul>
+</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="rust-expressions"><a class="header" href="#rust-expressions">Rust Expressions</a></h1>
+<h2 id="display"><a class="header" href="#display">Display</a></h2>
+<hr />
+<p>A <em>display</em> expression is one that has already been shown earlier in the book and is the
+simplest of all the expressions. It instructs the engine to write some variable data into
+the template at a specific point.</p>
+<p>One of the most simple uses is to write the contents of a variable into the template.</p>
+<pre><code class="language-html">&lt;span&gt;{% my_variable %}&lt;/span&gt;
+</code></pre>
+<p>It actually allows any arbitrary rust <a href="https://doc.rust-lang.org/reference/expressions.html">expression</a>
+inside the delimiters. The previous link leads to a technical definition of rust expressions if you need more
+of a primer on how they are used <a href="https://doc.rust-lang.org/stable/book/ch03-03-how-functions-work.html?highlight=expression#statements-and-expressions">see the book</a>.
+A rust expression is a separate concept from a Stilts <em>expression</em>.
+A Stilts <em>expression</em> only exists within the context of a template, and must be surrounded by the stilts delimiters.</p>
+<p>For a display expression to be valid the rust expression within the delimiters must evaluate to a type which implements
+<a href="https://doc.rust-lang.org/std/fmt/trait.Display.html"><code>Display</code></a>. That is however the only limitation, there is
+absolutely no limitation on syntax. For example inside the delimiters here is a fairly complex rust.</p>
+<pre><code class="language-stilts">&lt;script&gt;
+    let data = {% my_data.iter().filter(|x| x.allowed).collect::&lt;Vec&lt;_&gt;&gt;().json() %};
+&lt;/script&gt;
+</code></pre>
+<p>As a general rule code between the delimiters is not required to be on a single line, so the
+previous example could just as easily be formatted as follows.</p>
+<pre><code class="language-stilts">&lt;script&gt;
+    let data = {% my_data.iter()
+        .filter(|x| x.allowed)
+        .collect::&lt;Vec&lt;_&gt;&gt;()
+        .json() %};
+&lt;/script&gt;
+</code></pre>
+<p>There is no rule on how to properly format template code, so that comes down to aesthetic preference.
+The other thing these examples show off is the <code>json</code> function, this is one of a few convenience
+functions that Stilts provides via <a href="language/../extension_traits.html">"Extension Traits"</a>.</p>
+<h2 id="statement"><a class="header" href="#statement">Statement</a></h2>
+<hr />
+<p>A <em>statement</em> expression is very similar to a display <em>expression</em> except that it does not
+render anything to the template. It is rust code that gets run at that point during template
+rendering but does not insert anything into the template. The way this works is by using
+a rust <a href="https://doc.rust-lang.org/reference/statements.html"><strong>statement</strong></a> to distinguish whether
+there is a value to be rendered or not.
+In rust <strong>expressions</strong> must always produce a value, <strong>statements</strong> however produce no values.
+This mechanism should be familiar to most rust programmers, as it is how <code>return</code> can be omitted
+at the end of functions by just ending the function with an <strong>expression</strong>.</p>
+<p>For example by simply adding a semicolon to the previous display expression it becomes a statement.
+Doing this causes the value to <strong>not</strong> be rendered to the output.</p>
+<pre><code class="language-stilts">{% my_data.iter()
+    .filter(|x| x.allowed)
+    .collect::&lt;Vec&lt;_&gt;&gt;(); %}
+</code></pre>
+<p>Why would you want to write template expressions that neither render a value nor affect the render logic?
+Well the answer is variable declaration/modification and <a href="https://en.wikipedia.org/wiki/Side_effect_(computer_science)">"side effects"</a>.
+If you need to introduce a variable for any reason you can do so using a statement. As for side effects
+those are probably more rare than variable, but if some action needs to be performed without altering
+the template then use a <strong>statement</strong>.</p>
+<p>In the following example we declare a mutable variable data using a statement,
+then remove an element from the array without affecting the template by using another statement.</p>
+<pre><code class="language-stilts">{% let mut data = my_data.iter()
+    .filter(|x| x.allowed)
+    .collect::&lt;Vec&lt;_&gt;&gt;(); %}
+&lt;div&gt;Some templatate content&lt;/div&gt;
+{% data.pop(); %}
+&lt;a&gt;{% data.pop().unwrap().name %}&lt;/a&gt;
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="control-expressions"><a class="header" href="#control-expressions">Control Expressions</a></h1>
+<p>Control <em>expressions</em> are those which can control the logic of how content is displayed within a template.
+For instance conditionally rendering a section of a template depending on the value of a variable, or
+rendering a section multiple times based on a list of items. For most control expressions they share
+(structure/properties/token stream) with their rust counterpart.</p>
+<h2 id="if"><a class="header" href="#if">If</a></h2>
+<hr />
+<p>A Stilts <em>if</em> block can be used to change what parts of a template are rendered based on some value.</p>
+<p>For example, we can render a link only if some data is present to display the link.</p>
+<pre><code class="language-html">{% if data.is_some() %}
+    &lt;a href="{% data.unwrap().href %}"&gt;{% data.unwrap().name %}&lt;/a&gt;
+{% end %}
+</code></pre>
+<p>Now depending on whether <code>data.is_some()</code> is <code>true</code> or <code>false</code> the template
+will either render the stuff inside the if block or not.</p>
+<p>But having to unwrap multiple times is cumbersome, thankfully rust provides the <a href="https://doc.rust-lang.org/reference/expressions/if-expr.html#if-let-expressions">if let</a>
+convention for that. Stilts <em>if</em> blocks are basically equivalent to standard rust if statements, so any valid rust is valid in Stilts.</p>
+<pre><code class="language-html">{% if let Some(value) = data %}
+    &lt;a href="{% value.href %}"&gt;{% value.name %}&lt;/a&gt;
+{% end %}
+</code></pre>
+<p>Often it is useful to render something for multiple different cases for this you can use <code>else if</code> and <code>else</code>.</p>
+<pre><code class="language-stilts">{% if let Some(value) = data %}
+    &lt;a href="{% value.href %}"&gt;{% value.name %}&lt;/a&gt;
+{% else if let Some(value) = other %}
+    &lt;button onclick="{% value.clicked %}"&gt;{% value.name %}&lt;/button&gt;
+{% else %}
+    &lt;span&gt;No Data&lt;/span&gt;
+{% end %}
+</code></pre>
+<h2 id="match"><a class="header" href="#match">Match</a></h2>
+<hr />
+<p>A <em>match</em> block is used in much the same way as an <em>if</em> block, but match blocks can be used to <a href="https://doc.rust-lang.org/book/ch18-00-patterns.html">pattern match</a>.
+The match block is functionally equivalent to a rust <a href="https://doc.rust-lang.org/book/ch06-02-match.html">match</a>.</p>
+<pre><code class="language-stilts">{% match data %}
+    {% when Some(value) if !value.is_empty() %}
+        &lt;a href="{% value.href %}"&gt;{% value.name %}&lt;/a&gt;
+    {% when Some(value) %}
+        &lt;button onclick="noValue"&gt;{% value.name %}&lt;/button&gt;
+    {% when None %}
+        &lt;span&gt;No Data&lt;/span&gt;
+{% end %}
+</code></pre>
+<p>Just like their rust counterparts Stilts matches are exhaustive, meaning that all possible cases
+must be covered by the match arms. If you need, you can use the wildcard catch-all to provide a "default" case.</p>
+<pre><code class="language-stilts">{% match data %}
+    {% when Some() if !value.is_empty() %}
+        &lt;a href="{% value.href %}"&gt;{% value.name %}&lt;/a&gt;
+    {% when _ %}
+{% end %}
+</code></pre>
+<h2 id="for"><a class="header" href="#for">For</a></h2>
+<hr />
+<p>The <em>for</em> block is an expression which is used to repeat parts of a template multiple times. Again like the above blocks
+it is the same as the rust equivalent <a href="https://doc.rust-lang.org/book/ch03-05-control-flow.html?highlight=loop#looping-through-a-collection-with-for">for loop</a>.</p>
+<p>This will loop over the items in a collection and render the contents for each item in the collection.</p>
+<pre><code class="language-stilts">&lt;table&gt;
+{% for row in table %}
+    &lt;tr&gt;
+    {% for col in row %}
+        &lt;td&gt;{% col %}&lt;/td&gt;
+    {% end %}
+    &lt;/tr&gt;
+{% end %}
+&lt;/table&gt;
+</code></pre>
+<h2 id="macro"><a class="header" href="#macro">Macro</a></h2>
+<hr />
+<p>The <em>macro</em> block defines a section of template code that can be manually called to render in multiple locations
+and with different arguments. This is most useful for reducing code duplication within a template.</p>
+<p>Macros are not similar to rust macros, instead they are more like functions which can take args and
+will always output template code.</p>
+<p>This is a simple example where we have to do the same thing twice but with two different sets of
+data, and in two different locations within the template. We could write the whole for loop twice,
+or we could use a macro!</p>
+<pre><code class="language-stilts">{% macro list_users(users: &amp;[User]) %}
+&lt;ul&gt;
+    {% for user in users %}
+    &lt;li&gt;
+        {% user.name %}
+    &lt;/li&gt;
+    {% end %}
+&lt;/ul&gt;
+{% end %}
+
+&lt;div class="active"&gt;
+    {% call list_users(active_users) %}
+&lt;/div&gt;
+&lt;div class="inactive"&gt;
+    {% call list_users(inactive_users) %}
+&lt;/div&gt;
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="inheritance-expressions"><a class="header" href="#inheritance-expressions">Inheritance Expressions</a></h1>
+<p>Many good templating engines have some form of inheritance. Or a method by which templates can be built upon
+one another. Thus increasing reusability, and reducing repetition. Stilts implements a system based upon the
+template engines that inspired it.</p>
+<h2 id="extends"><a class="header" href="#extends">Extends</a></h2>
+<hr />
+<p>The <em>extends</em> expression informs the Stilts engine that the current template <strong>extends</strong>
+the functionality of another template. The current template becomes a "child" of the
+template in the <em>extends</em> expression. A child template is any template which invokes the <em>extends</em> expression
+in order to inherit from a "parent" template. A parent template is any template which has child templates that extend
+from it. A template can be at once a parent and a child template if both those conditions are met.</p>
+<p>The <strong>extending</strong> of functionality in the simplest case means that the content of the current template
+is added to the end of the parent template and that is how it gets rendered. It does however get more
+complicated with <em>block</em> expressions.</p>
+<h3 id="basehtml"><a class="header" href="#basehtml">base.html</a></h3>
+<pre><code class="language-stilts">Hello from the parent!
+</code></pre>
+<h3 id="childhtml"><a class="header" href="#childhtml">child.html</a></h3>
+<pre><code class="language-stilts">{% extends "base.html" %}
+
+Hello from the child!
+</code></pre>
+<h3 id="output"><a class="header" href="#output">Output</a></h3>
+<p>This is what the output of rendering the child template would look like</p>
+<pre><code>Hello from the parent!
+
+Hello from the child!
+</code></pre>
+<h2 id="block"><a class="header" href="#block">Block</a></h2>
+<hr />
+<p>Distinct from the concept of <em>block expressions</em> a stilts <em>inheritance block</em> is used to define secions of templates
+which can both be overriden by a potential child template and overrides a potential parent.</p>
+<p>The same expression is used in parent and child templates to perform their related tasks. On the parent
+defining a block means providing a section that any child templates <strong>can</strong> override, while in the
+child template defining a block means overridding the block that is defined by the parent.</p>
+<p>A <em>block</em> works in conjunction with the <em>extends</em> expressions to provide an inheritance structure to reduce
+template code duplication. This is best accomplished by writing most boilerplate into a base template that other
+child templates are able to extend and overwrite pieces of to create their own functionality.</p>
+<p>A parent/base template defines as many blocks as it wants wherever it wants. It can even put code
+into those blocks to provide default data in case a child template does not override the block.</p>
+<h4 id="basehtml-1"><a class="header" href="#basehtml-1">base.html</a></h4>
+<pre><code class="language-stilts">&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+    &lt;head&gt;
+        {% block head %}
+        &lt;title&gt;This is extensible!&lt;/title&gt;
+        {% end %}
+    &lt;/head&gt;
+    &lt;body&gt;
+        {% block body %}
+        {% end %}
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p>The child template when defining the same blocks is now overriding the blocks as defined
+by the parent template. This means the code inside the child blocks is <strong>essentially</strong> injected
+into the parent at the block definition.</p>
+<h4 id="childhtml-1"><a class="header" href="#childhtml-1">child.html</a></h4>
+<pre><code class="language-stilts">{% extends "base.html" %}
+
+{% block head %}
+    {% super() %} &lt;!-- Take note of this expression it is explained below --&gt;
+    &lt;script&gt;
+    &lt;/script&gt;
+{% end %}
+
+{% block body %}
+    &lt;button&gt;Hello World!&lt;/button&gt;
+{% end %}
+</code></pre>
+<p>The <code>{% super() %}</code> expression is a special expression which
+can only be used inside blocks which allows the child template to bring back the content
+of the parent block. If <em>super</em> is not called the content within the block defined by the
+parent is completely overriden by the child template.</p>
+<p>This is what the output of rendering the child template would look like. Since the child
+template used the <em>super</em> expression in the <code>head</code> block the content of the parent template
+was preserved while rendering the child.</p>
+<h4 id="output-1"><a class="header" href="#output-1">Output</a></h4>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+    &lt;head&gt;
+        &lt;title&gt;This is extensible!&lt;/title&gt;
+        &lt;script&gt;
+        &lt;/script&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;button&gt;Hello World!&lt;/button&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<h3 id="partial-rendering"><a class="header" href="#partial-rendering">Partial Rendering</a></h3>
+<p>Another special feature of blocks within a template is their ability to be rendered independently.
+Take the previous <code>base.html</code> as an example to declare that template in a rust app the code would
+look like the following.</p>
+<pre><code class="language-rust numbered">#[derive(Template)]
+#[stilts(path = "base.html")]
+struct BaseTemplate {}</code></pre>
+<p>However there is commonly a need to render pieces of a larger template as a component. Breaking
+very small pieces of template out into another file can lead to lots of small files being difficult
+to manage. So to aleviate this issue stilts allows defining templates which only render a single block.</p>
+<pre><code class="language-rust numbered">#[derive(Template)]
+#[stilts(path = "base.html", block = "body")]
+struct BodyOnly {}</code></pre>
+<p>This technique is useful for partial updates of a webpage when smaller components
+need to be re-rendered server side. For larger or more complex components used in
+multiple places the <code>include</code> expression should be preffered.</p>
+<h2 id="include"><a class="header" href="#include">Include</a></h2>
+<hr />
+<p>An <em>include</em> expression is used to add the content from another template into a template
+at a specified point in the template.</p>
+<p>For example say you have a base template that all other templates inherit from
+you can still break out some bits into smaller chunks specified in other files.
+In this example we include two other template files <code>header.html</code>, and <code>socials.html</code>.
+The contents of those two files would be inserted at the invocation of <em>include</em>.</p>
+<pre><code class="language-stilts">&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+    &lt;head&gt;
+        &lt;!--A bunch of metadata and script stuff--&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;header&gt;{% include "header.html" %}&lt;/header&gt;
+        &lt;main&gt;{% block main %}{% end %}&lt;/main&gt;
+        &lt;footer&gt;{% include "socials.html" %}&lt;/footer&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p>A new feature that Stilts adds to include expressions is the ability to specify arguments.
+By default, include expressions will drag in all the variables required by them into the base
+template. You can however avoid this by setting the values inside the template.</p>
+<p>The arguments are simply added on at the end between a pair of curly braces, and it follows the
+rust struct literal syntax.</p>
+<pre><code class="language-stilts">&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+    &lt;head&gt;
+        &lt;!--A bunch of metadata and script stuff--&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;header&gt;{% include "header.html" {
+            links: &amp;[
+                ("Home", "/"),
+                ("Social Media", "http://external.website")
+            ],
+            active: "/"
+        } %}&lt;/header&gt;
+        &lt;main&gt;{% block main %}{% end %}&lt;/main&gt;
+        &lt;footer&gt;{% include "socials.html" %}&lt;/footer&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="configuration"><a class="header" href="#configuration">Configuration</a></h1>
+<p>Stilts can be configured to meet many potential requirements. Stilts is
+configured via your projects existing <code>Cargo.toml</code> file which already is
+your rust config. All configuration is done using <a href="https://doc.rust-lang.org/cargo/reference/manifest.html#the-metadata-table"><code>package.metadata</code></a>
+which is a cargo feature that allows Stilts to define a custom configuration
+within your existing cargo project. To modify the configuration set values
+in the <code>package.metadata.stilts</code> field in your project config, e.g.</p>
+<pre><code class="language-toml"># Cargo.toml
+[package.metadata.stilts]
+trim = true
+</code></pre>
+<p>Here is a list of configuration options, what they do, and their defaults:</p>
+<ul>
+<li><strong>template_dir</strong>: Sets the root directory that Stilts looks in to find your templates.
+<blockquote>
+<p>Default: "$CARGO_MANIFEST_DIR/templates"</p>
+</blockquote>
+</li>
+<li><strong>trim</strong>: Trims whitespace from the beginning and end of each piece of template content
+in between expressions.
+<blockquote>
+<p>Default: false</p>
+</blockquote>
+</li>
+<li><strong>delimiters</strong>: Sets what delimiters Stilts uses when parsing templates.
+<blockquote>
+<p>Default: ["{%", "%}"]</p>
+</blockquote>
+</li>
+<li><strong>writer_name</strong>: Sets the name of the variable used when generating the template rendering code.
+<blockquote>
+<p>Default: "_w"</p>
+</blockquote>
+</li>
+<li><strong>escape</strong>: A table of paths to types that implement <a href="https://docs.rs/stilts/latest/stilts/escaping/trait.Escaper.html"><code>Escaper</code></a>,
+and the list of file extensions which that implementation will be applied to.
+<blockquote>
+<p>Default: { "::stilts::escaping::Html" = ["html", "htm"] }</p>
+</blockquote>
+</li>
+</ul>
+<p>So the default configuration would look like this in the context of a full <code>Cargo.toml</code> file.</p>
+<pre><code class="language-toml">[package.metadata.stilts]
+template_dir = "$CARGO_MANIFEST_DIR/templates"
+trim = false
+delimiters = ["{%", "%}"]
+writer_name = "_w"
+
+[package.metadata.stilts.escape]
+"::stilts::escaping::Html" = ["html", "htm"]
+</code></pre>
+<h2 id="escaping"><a class="header" href="#escaping">Escaping</a></h2>
+<hr />
+<p>Stilts implements an opt-out escaping scheme for templates. By default, the only escaping mechanism
+is for HTML files, which is the major use case for Stilts. Custom schemes can be added to the configuration
+as seen above. Stilts also provides a method of excluding whole templates and single display expressions from
+being escaped if so desired.</p>
+<p>The HTML escaping follows OWASP standards of replacing the following characters with safe versions: <code>&amp;</code>, <code>&lt;</code>, <code>&gt;</code>, <code>"</code>, <code>'</code>, <code>/</code></p>
+<p>The above configuration section shows how users can add escapers to the opt-out system of stilts,
+but it does not describe how to actually implement an escaper. Below is a custom implementation that
+replaces a curse word with stars. This is meant only as an example of how to create a custom escaper.</p>
+<pre><code class="language-rust numbered">use std::fmt::{self, Display};
+use stilts::escaping::Escaper;
+
+struct HorrificSwear;
+impl Escaper for HorrificSwear {
+    fn fmt&lt;T: Display + ?Sized&gt;(
+        &amp;self,
+        value: &amp;T,
+        f: &amp;mut fmt::Formatter&lt;'_&gt;
+    ) -&gt; fmt::Result {
+        let s = value.to_string();
+        let safe = s.replace("heck", "**ck") // clearly much better
+        f.write_str(&amp;safe)
+    }
+}</code></pre>
+<p>Once you have that done simply add it to your config as follows to
+make it operate on all the file extensions listed for its entry.</p>
+<pre><code class="language-toml">[package.metadata.stilts.escape]
+"::my_crate::HorrificSwear" = ["txt", "md"]
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="design-iteration"><a class="header" href="#design-iteration">Design Iteration</a></h1>
+<p>Design iteration is an important part of the design process. Friction in that process often
+causes users to move on to other projects. This section will cover a few methods of reducing
+development iteration time friction caused by Stilts.</p>
+<p>This friction is unfortunately fundamental to how Stilts operates as an engine. The compile
+time guarantees are provided by the rust compiler, meaning that whatever crate contains templates
+must recompile when templates change.</p>
+<p>The techniques for reducing this friction can be broadly categorized into 3 groups:
+Live Reload, Change Watching, and Compilation Speed.</p>
+<h2 id="live-reload"><a class="header" href="#live-reload">Live Reload</a></h2>
+<hr />
+<p>A method of automatically refreshing changes on the frontend of a design for the designer to view when
+changes are made to a code base. When using Stilts this methodology works much better when combined with a change watcher.</p>
+<ul>
+<li><a href="https://github.com/leotaku/tower-livereload">Tower Livereload</a> is a library which can be added to any web server that
+makes use of the <a href="https://docs.rs/tower/latest/tower/">tower</a> ecosystem. It injects code to automatically refresh the
+browser when it detects the server go down and come back.</li>
+</ul>
+<h2 id="change-watching"><a class="header" href="#change-watching">Change Watching</a></h2>
+<hr />
+<p>A system that watches for file changes inside your project and automatically causes a recompilation
+based on that.</p>
+<ul>
+<li>
+<p><a href="https://github.com/Canop/bacon">Bacon</a> is a wonderful tool which watches for rust source code file changes. This requires
+some configuration to use in conjunction with Stilts. Namely, bacon must be told to also watch the <code>templates</code> directory,
+and to kill the running process and restart instead of wait and restart.</p>
+<p>You can configure this in a global config or at the project level in a file called <code>bacon.toml</code> but here is an example
+config that works for Stilts.</p>
+<pre><code class="language-toml">[jobs.watch]
+command = ["cargo", "run"]
+on_change_strategy = "kill_then_restart"
+watch = ["templates/"]
+</code></pre>
+<p>Then all you have to do is run <code>bacon watch</code> and code changes will automatically result in a recompilation and rerun.</p>
+</li>
+<li>
+<p><a href="https://github.com/watchexec/watchexec">Watchexec</a> is a great and fairly simple tool which watches files and runs a command
+when it detects changes. It can be used without configuration with a simple single command.</p>
+<pre><code class="language-shell">watchexec -r -e rs,html,css,js cargo run
+</code></pre>
+<p>Will watch for changes in files with the extensions: rs, HTML, CSS, or JS and run the command <code>cargo run</code> while
+restarting the existing process that was already running.</p>
+</li>
+<li>
+<p><a href="https://github.com/watchexec/cargo-watch">Cargo Watch</a> Is not recommended by the project author anymore due to lack of
+time to support the project, however it still works very well. It is the most straightforward to use as a single simple command
+with no special flags works out of the box for Stilts projects.</p>
+<pre><code class="language-shell">cargo watch
+</code></pre>
+</li>
+</ul>
+<h2 id="compiliation-speed"><a class="header" href="#compiliation-speed">Compiliation Speed</a></h2>
+<p>Stilts requires a full recompilation of your source code anytime a change is made to your templates. This means that reducing
+compilation times will increase the speed with which you can iterate on your designs. There are multiple methods of doing this
+and many of them can be combined to add on top of eachother.</p>
+<ul>
+<li><strong>Break you code up into multiple crates.</strong> One simple performance improvement can be to break code into multiple crates. There isn't
+an exact science to this, and it may not be a good idea for very simple projects. The reason this works however is that the rust
+compiler launches multiple threads to perform compilation in parallel, but the unit of compilation is the crate. Meaning that
+splitting code into multiple crates makes for better parallel compilation.</li>
+<li><strong>Use the <a href="https://github.com/rui314/mold">mold</a> linker.</strong> This is simply a tool switch from the default linker rust uses to another
+which performs the same task but faster. Linking is the final step in compilation, and any performance increase is welcome.
+The mold readme has a section on how to use it for rust.</li>
+<li><strong>Use the <a href="https://github.com/rust-lang/rustc_codegen_cranelift">rustc cranelift backend</a>.</strong> This replaces another component in the
+compilation process. This time it replaces the backend of the compiler which generates the low level objects that get linked together.
+Rust uses LLVM by default but cranelift can sometimes be faster. The downside of this currently is that it requires using nightly rust.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="extension-traits"><a class="header" href="#extension-traits">Extension Traits</a></h1>
+<p>Extension traits are an existing concept in rust used to add functionality to types.
+Stilts defines a few extension traits which are imported into the template rendering scope automatically.</p>
+<p>Currently, there are three traits exposing 5 methods which can be used to change how a variable
+is rendered. You can view the <a href="https://docs.rs/stilts/latest/stilts/#traits">trait docs</a> to see
+how the traits are defined and implemented, but this page will cover the basics of how to use them.</p>
+<h2 id="debugext"><a class="header" href="#debugext">DebugExt</a></h2>
+<hr />
+<p>This trait is implemented for any type that implements <a href="https://doc.rust-lang.org/std/fmt/trait.Debug.html"><code>Debug</code></a>.
+It adds a method <code>debug</code> which makes stilts render the type using its <code>Debug</code> implementation instead
+of it's <a href="https://doc.rust-lang.org/std/fmt/trait.Display.html"><code>Display</code></a> implementation which is the default.</p>
+<h3 id="example"><a class="header" href="#example">Example</a></h3>
+<pre><code class="language-stilts">{% name.debug() %}
+</code></pre>
+<h2 id="displayext"><a class="header" href="#displayext">DisplayExt</a></h2>
+<hr />
+<p>This is implemented on any type that implements <code>Display</code> and is provides multiple functions.</p>
+<p>The functions currently provided by this trait are:</p>
+<ul>
+<li><code>safe</code> Which marks the value as safe to render without running through a sanitizer.</li>
+<li><code>lowercase</code> Changes the output of the type to all lowercase.</li>
+<li><code>uppercase</code> Changes the output of the type to all uppercase.</li>
+</ul>
+<blockquote>
+<p><strong>Warning</strong> Only use the <code>safe</code> function on data that is verifiably HTML safe.
+Not following this rule opens you up to <a href="https://owasp.org/www-community/attacks/xss/">XSS</a> attacks!
+Anything involving user input is an example of where you want to be very careful using <code>safe</code>.</p>
+</blockquote>
+<h2 id="serializeext"><a class="header" href="#serializeext">SerializeExt</a></h2>
+<hr />
+<p>This only provides one function, and it is implemented on any type which implements
+<a href="https://github.com/serde-rs/serde">serde</a> <a href="https://docs.rs/serde/latest/serde/trait.Serialize.html"><code>Serialize</code></a>.
+It adds the <code>json</code> function which converts the type into a <a href="https://en.wikipedia.org/wiki/JSON">JSON</a>
+string. This is most useful for adding data to a javascript script inside the template.</p>
+<h3 id="example-1"><a class="header" href="#example-1">Example</a></h3>
+<p>One thing with the default escaping scheme you will usually also have to mark the JSON output
+as safe so that the quotation marks don't get replaced with <code>&amp;quot;</code>. Be sure to only do this
+if you can trust the data! Most data submitted by a user should not be marked as safe unless
+it has already also been processed and made safe.</p>
+<pre><code class="language-stilts">&lt;script&gt;
+    const DATA = {% my_template_data.json().safe() %};
+&lt;/script&gt;
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="performance"><a class="header" href="#performance">Performance</a></h1>
+<p>While performance is not a current target for improvement in Stilts, it does perform well when compared to other rust template engines.
+The tests ran were modified and updated from these <a href="https://github.com/rosetta-rs/template-benchmarks-rs">template benchmarks</a>, which have not been
+updated in some time. The benchmark code will be released to open source soon to provide better insight into methodology, but it hasn't changed much
+from the linked benchmarks.</p>
+<p>Stilts underperforms slightly when compared to other compiled template engines, but it still greatly outperforms runtime engines.
+This result is at least partially expected, other compiled template engines are able to employ certain optimizations at compile
+time, that have not been implemented in Stilts.</p>
+<p><boxit key="big_table"></boxit></p>
+<p><boxit key="teams"></boxit></p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="references"><a class="header" href="#references">References</a></h1>
+<p>[1] 	Rust Team, “Rust Programming Language,” Rust-lang.org, 2018. https://www.rust-lang.org/</p>
+<p>[2] 	“The Rust Programming Language - The Rust Programming Language,” doc.rust-lang.org. https://doc.rust-lang.org/stable/book/</p>
+<p>[3] 	Wikipedia Contributors, “Template processor,” Wikipedia, Feb. 14, 2024. https://en.wikipedia.org/wiki/Template_processor</p>
+<p>[4] 	B. Kampmann, C. Morgan, T. Nakata, and I. Ahmed, “Templating» AWWY?,” Are We Web Yet? https://www.arewewebyet.org/topics/templating/</p>
+<p>[5] 	D. Ochtman, “GitHub - djc/askama: Type-safe, compiled Jinja-like templates for Rust,” GitHub, Mar. 06, 2023. https://github.com/djc/askama</p>
+<p>[6] 	D. Tolnay, “GitHub - dtolnay/proc-macro-workshop: Learn to write Rust procedural macros  [Rust Latam conference, Montevideo Uruguay, March 2019],” GitHub, 2019. https://github.com/dtolnay/proc-macro-workshop</p>
+<p>[7] 	“The Rust Reference,” Rust-lang.org, 2015. https://doc.rust-lang.org/reference/</p>
+<p>[8] 	D. Tolnay, “syn - Rust,” Docs.rs, 2024. https://docs.rs/syn/latest/syn/</p>
+<p>[9] 	M. Dossinger, “Are we (I)DE yet?,” Areweideyet.com, 2019. https://areweideyet.com/</p>
+<p>[10] 	Wikipedia Contributers, “Terminal emulator,” Wikipedia, Dec. 25, 2022. https://en.wikipedia.org/wiki/Terminal_emulator</p>
+<p>[11] 	“Cargo Guide - The Cargo Book,” Rust-lang.org, 2024. https://doc.rust-lang.org/cargo/guide/</p>
+<p>[12] 	rosetta-rs, “GitHub - rosetta-rs/template-benchmarks-rs: Collected benchmarks for templating crates written in Rust,” GitHub, 2023. https://github.com/rosetta-rs/template-benchmarks-rs</p>
+<p>[13] 	L. Gaskin, “GitHub - leotaku/tower-livereload: Tower middleware to automatically reload your web browser during development,” GitHub, 2022. https://github.com/leotaku/tower-livereload</p>
+<p>[14] 	“tower - Rust,” Docs.rs, 2024. https://docs.rs/tower/latest/tower/</p>
+<p>[15] 	D. Séguret, “GitHub - Canop/bacon: background rust code check,” GitHub, Sep. 14, 2024. https://github.com/Canop/bacon</p>
+<p>[16] 	F. Saparelli, “GitHub - watchexec/watchexec: Executes commands in response to file modifications —— Maintenance status: on hold. I have no time for OSS currently; back late 2024.,” GitHub, Jul. 02, 2024. https://github.com/watchexec/watchexec</p>
+<p>[17] 	F. Saparelli, “GitHub - watchexec/cargo-watch: Watches over your Cargo project’s source.,” GitHub, Oct. 02, 2024. https://github.com/watchexec/cargo-watch</p>
+<p>[18] 	R. Ueyama, “mold: A Modern Linker,” GitHub, Dec. 07, 2023. https://github.com/rui314/mold</p>
+<p>[19] 	rust-lang, “GitHub - rust-lang/rustc_codegen_cranelift: Cranelift based backend for rustc,” GitHub, 2018. https://github.com/rust-lang/rustc_codegen_cranelift</p>
+<p>[20]    “Jinja — Jinja Documentation (3.1.x),” Palletsprojects.com, 2024. https://jinja.palletsprojects.com</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/highlightjs-line-numbers.min.js"></script>
+        <script src="theme/linenum.js"></script>
+        <script src="vis/plotly.min.js"></script>
+        <script src="vis/boxit.js"></script>
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+    </div>
+    </body>
+</html>
