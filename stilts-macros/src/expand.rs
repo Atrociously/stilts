@@ -4,7 +4,9 @@ use cargo_metadata::camino::Utf8PathBuf;
 use proc_macro2::TokenStream;
 use quote::quote;
 use stilts_lang::parse_template;
-use stilts_lang::types::{Expr, IfBranch, Item, ItemBlock, ItemFor, ItemIf, ItemMacro, ItemMatch, MatchArm, Root};
+use stilts_lang::types::{
+    Expr, IfBranch, Item, ItemBlock, ItemFor, ItemIf, ItemMacro, ItemMatch, MatchArm, Root,
+};
 
 use crate::config::Config;
 use crate::err;
@@ -18,7 +20,8 @@ fn format_err(e: stilts_lang::Error) -> syn::Error {
     #[cfg(feature = "narratable")]
     let handler = miette::NarratableReportHandler::new();
     #[cfg(feature = "fancy")]
-    let handler = miette::GraphicalReportHandler::new_themed(miette::GraphicalTheme::unicode_nocolor());
+    let handler =
+        miette::GraphicalReportHandler::new_themed(miette::GraphicalTheme::unicode_nocolor());
     #[cfg(any(feature = "narratable", feature = "fancy"))]
     {
         let mut s = String::new();
@@ -49,7 +52,7 @@ impl Graph {
             let blocks = Self::get_blocks(block.content.iter());
             node.blocks = blocks;
             node.root.content = block.content;
-            
+
             // blocks don't support inheritance
             parent = None;
         }
@@ -218,14 +221,16 @@ impl<'a> TemplateRef<'a> {
             .map(|bi| match bi {
                 Item::Expr(Expr::SuperCall) => {
                     let parent = self.parent();
-                    let pblock = parent.as_ref().and_then(|p| p.blocks.get(block.name.as_ref()));
+                    let pblock = parent
+                        .as_ref()
+                        .and_then(|p| p.blocks.get(block.name.as_ref()));
                     if let Some((parent, pblock)) = parent.zip(pblock) {
                         parent.expand_block_inner(cfg, pblock)
                     } else {
                         Ok(quote! {})
                     }
-                },
-                item => self.expand_item(cfg, item)
+                }
+                item => self.expand_item(cfg, item),
             })
             .collect()
     }
@@ -249,7 +254,11 @@ impl<'a> TemplateRef<'a> {
                     .collect::<Result<_, _>>()?;
                 Ok(quote! { else { #items } })
             }
-            IfBranch::ElseIf { cond, content, branch } => {
+            IfBranch::ElseIf {
+                cond,
+                content,
+                branch,
+            } => {
                 let items: TokenStream = content
                     .iter()
                     .map(|i| self.expand_item(cfg, i))
@@ -301,7 +310,12 @@ impl<'a> TemplateRef<'a> {
                 }
             }
             Item::Block(block_item) => self.expand_block(cfg, block_item),
-            Item::For(ItemFor { label, pat, expr, content }) => {
+            Item::For(ItemFor {
+                label,
+                pat,
+                expr,
+                content,
+            }) => {
                 let content: TokenStream = content
                     .iter()
                     .map(|i| self.expand_item(cfg, i))
@@ -312,7 +326,11 @@ impl<'a> TemplateRef<'a> {
                     }
                 })
             }
-            Item::If(ItemIf { cond, content, branch }) => {
+            Item::If(ItemIf {
+                cond,
+                content,
+                branch,
+            }) => {
                 let items: TokenStream = content
                     .iter()
                     .map(|i| self.expand_item(cfg, i))
@@ -335,7 +353,11 @@ impl<'a> TemplateRef<'a> {
                     }
                 })
             }
-            Item::Macro(ItemMacro { name, args, content }) => {
+            Item::Macro(ItemMacro {
+                name,
+                args,
+                content,
+            }) => {
                 let writer = &cfg.writer_name;
                 let writer_ty = quote! { &mut (impl ::core::fmt::Write + ?::core::marker::Sized) };
                 let content = content
@@ -360,11 +382,10 @@ impl<'a> TemplateRef<'a> {
                 };
                 let graph = Graph::load(cfg, &attrs)?;
                 let included = graph.expand(cfg)?;
-                let arg_assignments = args.into_iter()
-                    .map(|arg| {
-                        let syn::FieldValue { member, expr, .. } = arg;
-                        quote!{let #member = #expr;}
-                    });
+                let arg_assignments = args.into_iter().map(|arg| {
+                    let syn::FieldValue { member, expr, .. } = arg;
+                    quote! {let #member = #expr;}
+                });
                 Ok(quote! {
                     {
                         #(#arg_assignments)*
@@ -377,7 +398,7 @@ impl<'a> TemplateRef<'a> {
                 Ok(quote! {
                     #name(#writer, #args)?;
                 })
-            },
+            }
             Item::Expr(Expr::Expr(expr)) => Ok(
                 quote! { ::core::write!(#writer, "{}", ::stilts::escaping::Escaped::new(&#expr, #escaper))?; },
             ),
@@ -453,11 +474,10 @@ pub fn template(input: TemplateInput) -> syn::Result<TokenStream> {
 
     let config = Config::load().map_err(|e| err!(format!("Stilts Config Error: {e}")))?;
 
-    let mime_type = attrs.source.mime_type()
-        .map(|m| m.to_string());
+    let mime_type = attrs.source.mime_type().map(|m| m.to_string());
     let mime_type = match mime_type {
         Some(mt) => quote! { Some(#mt) },
-        None => quote! { None }
+        None => quote! { None },
     };
 
     let graph = Graph::load(&config, attrs)?;
@@ -493,8 +513,7 @@ pub fn template(input: TemplateInput) -> syn::Result<TokenStream> {
     ));
     #[cfg(feature = "rocket")]
     integrations.extend(crate::integrations::rocket::expand_integration(
-        ident,
-        generics,
+        ident, generics,
     ));
     #[cfg(feature = "warp")]
     integrations.extend(crate::integrations::warp::expand_integration(
@@ -516,7 +535,8 @@ pub fn template(input: TemplateInput) -> syn::Result<TokenStream> {
                 use ::stilts::DisplayExt as _;
                 use ::stilts::DebugExt as _;
                 let Self {
-                    #(#field_idents),*
+                    #(#field_idents,)*
+                    ..
                 } = self;
 
                 #template_code

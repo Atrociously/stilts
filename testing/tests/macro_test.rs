@@ -6,12 +6,21 @@ use stilts::Template;
 #[stilts(path = "sample.html")]
 struct MyTemplate<'a> {
     a: &'a str,
+    #[stilts(ignore)]
+    b: u32,
 }
 
 #[derive(Template)]
 #[stilts(content = "Literal {% a %} Template", trim = false)]
 struct LitTemplate<'a> {
     a: &'a str,
+}
+
+impl MyTemplate<'_> {
+    fn read_b(&self) -> &Self {
+        std::hint::black_box(self.b);
+        self
+    }
 }
 
 #[test]
@@ -27,7 +36,9 @@ fn ensure_matches() {
 
     let val = MyTemplate {
         a: "my code content <a></a>",
+        b: 0,
     }
+    .read_b()
     .render()
     .unwrap();
 

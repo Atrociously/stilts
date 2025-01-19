@@ -21,7 +21,7 @@ impl TemplateInput {
                 fields: data
                     .fields
                     .into_iter()
-                    .map(Field::parse)
+                    .filter_map(|field| Field::parse(field))
                     .collect::<Result<_, _>>()?,
             }),
             Data::Enum(_) => Err(err!(input.ident, "enum templates are not supported")),
@@ -120,14 +120,25 @@ pub struct Field {
 }
 
 impl Field {
-    pub fn parse(field: syn::Field) -> syn::Result<Self> {
-        Ok(Self {
-            ident: field.ident.ok_or_else(|| {
-                syn::Error::new(
-                    field.ty.span(),
-                    "only structs with named fields are supported",
-                )
-            })?,
-        })
+    pub fn parse(field: syn::Field) -> Option<syn::Result<Self>> {
+        let mut ignore = false;
+        for attr in field.attrs {
+            let _ = attr.parse_nested_meta(|meta| {
+                if meta.path.is_ident("ignore") {
+                    ignore = true;
+                }
+                Ok(())
+            });
+        }
+        if ignore {
+            return None;
+        }
+        let Some(ident) = field.ident else {
+            return Some(Err(syn::Error::new(
+                field.ty.span(),
+                "only structs with named fields are supported",
+            )));
+        };
+        Some(Ok(Self { ident }))
     }
 }
