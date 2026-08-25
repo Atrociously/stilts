@@ -1,4 +1,3 @@
-use proc_macro2::Span;
 use syn::{spanned::Spanned, Data, DeriveInput};
 use syn::{Attribute, Generics, Ident, LitBool, LitStr, Path};
 
@@ -30,40 +29,25 @@ impl TemplateInput {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum TemplateSource {
-    Literal(LitStr),
-    File(LitStr),
-}
-
-impl TemplateSource {
-    pub fn new_file(path: impl AsRef<str>) -> Self {
-        Self::File(LitStr::new(path.as_ref(), Span::call_site()))
-    }
-
-    #[allow(dead_code)] // This is used in feature gated integrations
-    pub fn as_path(&self) -> Option<String> {
-        match self {
-            Self::File(value) => Some(value.value()),
-            _ => None,
-        }
-    }
-
-    pub fn mime_type(&self) -> Option<mime_guess::mime::Mime> {
-        self.as_path()
-            .map(mime_guess::from_path)
-            .and_then(|g| g.first())
-    }
-}
-
 pub struct TemplateAttrs {
-    pub source: TemplateSource,
+    pub source: stilts_lang::TemplateSource,
     pub escape: Option<Path>,
     pub trim: Option<bool>,
     pub block: Option<String>,
 }
 
 impl TemplateAttrs {
+    pub fn into_options(self) -> stilts_lang::TemplateOptions {
+        stilts_lang::TemplateOptions {
+            overrides: stilts_lang::Overrides {
+                escape_implementation: self.escape,
+                trim: self.trim,
+            },
+            source: self.source,
+            only_block: self.block,
+        }
+    }
+
     pub fn parse(attrs: Vec<Attribute>) -> syn::Result<Self> {
         let attrs = attrs
             .into_iter()
@@ -79,12 +63,12 @@ impl TemplateAttrs {
                 if meta.path.is_ident("path") {
                     let value = meta.value()?;
                     let value: LitStr = value.parse()?;
-                    source = Some(TemplateSource::File(value));
+                    source = Some(stilts_lang::TemplateSource::File(value.value().into()));
                 }
                 if meta.path.is_ident("content") {
                     let value = meta.value()?;
                     let value: LitStr = value.parse()?;
-                    source = Some(TemplateSource::Literal(value));
+                    source = Some(stilts_lang::TemplateSource::Content(value.value()));
                 }
                 if meta.path.is_ident("escape") {
                     let value = meta.value()?;

@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use cargo_metadata::camino::{Utf8Path, Utf8PathBuf};
+use camino::{Utf8Path, Utf8PathBuf};
 
 pub fn expand_path(path: impl Into<Utf8PathBuf>) -> Utf8PathBuf {
     let path = path.into();
@@ -17,7 +17,9 @@ pub fn expand_path(path: impl Into<Utf8PathBuf>) -> Utf8PathBuf {
         .collect();
 
     if path.is_relative() {
-        let root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+        let Ok(root) = std::env::var("CARGO_MANIFEST_DIR") else {
+            return path;
+        };
         let root = Utf8PathBuf::from(root);
         root.join(path)
     } else {

@@ -15,13 +15,17 @@ repository = "https://github.com/Atrociously/stilts"
 members = [
     "stilts-lang",
     "stilts-macros",
+    "stilts-parser",
     "testing",
 ]
 
 [workspace.dependencies]
 miette = "7.2"
+pretty_assertions = "1.4"
 proc-macro2 = { version = "1", features = ["span-locations"] }
+serde = "1"
 syn = { version = "2", features = ["full"] }
+winnow = "0.6.8"
 
 [features]
 debug = ["stilts-macros/debug"]

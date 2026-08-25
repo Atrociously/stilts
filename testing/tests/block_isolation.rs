@@ -1,5 +1,6 @@
 #![warn(clippy::pedantic)]
 
+use pretty_assertions::assert_eq;
 use stilts::Template;
 
 #[derive(Template)]
@@ -10,7 +11,7 @@ struct ChildTemplate<'a> {
 
 #[test]
 fn ensure_child() {
-    const EXPECTED: &str = r#"Hello Word<a href="/">MY MAN</a>my code content <a></a>"#;
+    const EXPECTED: &str = r#"Hello World<a href="/">MY MAN</a>my code content <a></a>"#;
 
     let val = ChildTemplate {
         a: "my code content <a></a>",
@@ -34,11 +35,7 @@ struct SoloTemplate<'a> {
 fn ensure_solo() {
     const EXPECTED: &str = r#"<strong>Hey</strong>"#;
 
-    let val = SoloTemplate {
-        a: "Hey",
-    }
-    .render()
-    .unwrap();
+    let val = SoloTemplate { a: "Hey" }.render().unwrap();
 
     assert_eq!(val, EXPECTED);
 }

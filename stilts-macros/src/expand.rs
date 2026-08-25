@@ -1,18 +1,18 @@
-use std::collections::HashMap;
-
-use cargo_metadata::camino::Utf8PathBuf;
 use proc_macro2::TokenStream;
 use quote::quote;
-use stilts_lang::parse_template;
-use stilts_lang::types::{
-    Expr, IfBranch, Item, ItemBlock, ItemFor, ItemIf, ItemMacro, ItemMatch, MatchArm, Root,
+use stilts_lang::{StiltsSpec, TemplateGraph, TemplateOptions, TemplateRef};
+use stilts_parser::types::{
+    Expr, IfBranch, Item, ItemBlock, ItemFor, ItemIf, ItemMacro, ItemMatch, MatchArm,
 };
 
-use crate::config::Config;
 use crate::err;
-use crate::parse::{TemplateAttrs, TemplateInput, TemplateSource};
+use crate::parse::TemplateInput;
 
 fn format_err(e: stilts_lang::Error) -> syn::Error {
+    let e = match e {
+        stilts_lang::Error::Parse(err) => err,
+        err => return err!(err),
+    };
     #[cfg(not(any(feature = "narratable", feature = "fancy")))]
     return err!(e.display_simple());
 
@@ -26,442 +26,261 @@ fn format_err(e: stilts_lang::Error) -> syn::Error {
     {
         let mut s = String::new();
         let s = handler
-            .render_report(&mut s, &e)
+            .render_report(&mut s, e.as_ref())
             .map(|_| s)
             .unwrap_or(e.display_simple());
         err!(s)
     }
 }
 
-#[derive(Debug)]
-struct Graph(Vec<TemplateNode>);
+fn expand_graph(config: stilts_lang::Config, opts: TemplateOptions) -> syn::Result<TokenStream> {
+    let fs = stilts_lang::StdFs;
+    let mut graph = stilts_lang::Heirarchy::new(fs, config.clone());
+    let root = graph.load(opts).map_err(format_err)?;
 
-impl Graph {
-    pub fn load(cfg: &Config, attrs: &TemplateAttrs) -> syn::Result<Self> {
-        let mut graph = Vec::with_capacity(1);
-
-        let mut node = Self::load_node(cfg, &attrs.source, attrs.escape.clone(), attrs.trim)?;
-        let mut parent = Self::get_parent(&node.root);
-
-        // isolate a single block
-        if let Some(block) = &attrs.block {
-            let Some(block) = node.blocks.remove(block) else {
-                return Err(err!(format!("isolated block not found: {block}")));
-            };
-
-            let blocks = Self::get_blocks(block.content.iter());
-            node.blocks = blocks;
-            node.root.content = block.content;
-
-            // blocks don't support inheritance
-            parent = None;
+    let mut expanded_blocks = Vec::new();
+    let mut toks = TokenStream::new();
+    let mut cur = root.parentage().last().or(Some(root)); // get topmost parent or else the root
+    while let Some(t) = cur {
+        if let Some(path) = t.node().data.source_path.as_ref().map(|p| p.as_str()) {
+            toks.extend(quote! { ::core::include_bytes!(#path); });
         }
-
-        graph.push(node);
-
-        fn check_dependency_cycle(
-            cfg: &Config,
-            graph: &[TemplateNode],
-            path: &Utf8PathBuf,
-        ) -> Result<(), syn::Error> {
-            // check for graph cycle
-            if graph.iter().any(|t| t.data.path.as_ref() == Some(path)) {
-                let mut cycle_str = graph.iter().filter_map(|t| t.data.path.as_ref()).fold(
-                    String::new(),
-                    |mut acc, p| {
-                        acc.push_str(&format!("{} -> ", relative_to(cfg, p)));
-                        acc
-                    },
-                );
-                cycle_str.push_str(&relative_to(cfg, path));
-                Err(err!(format!("dependency cycle detected: {cycle_str}")))
-            } else {
-                Ok(())
-            }
-        }
-
-        while let Some(p) = parent {
-            let source = TemplateSource::new_file(p);
-            let node = Self::load_node(cfg, &source, attrs.escape.clone(), attrs.trim)?;
-
-            // always true, but this piggybacks on the transformation from `p` to `path`
-            if let Some(path) = &node.data.path {
-                check_dependency_cycle(cfg, &graph, path)?;
-            }
-
-            parent = Self::get_parent(&node.root);
-            graph.push(node);
-        }
-
-        graph.reverse();
-        Ok(Self(graph))
+        toks.extend(expand_node(&config, &t, &expanded_blocks)?);
+        expanded_blocks.extend(t.node().blocks.keys().map(|s| s.clone().into()));
+        cur = t.children().next();
     }
-
-    /// Read and parse a single template file or literal.
-    fn load_node(
-        cfg: &Config,
-        source: &TemplateSource,
-        escape_override: Option<syn::Path>,
-        trim_override: Option<bool>,
-    ) -> syn::Result<TemplateNode> {
-        let data = read_template(cfg, source)?;
-        let root = parse_template(&data.content, cfg.delimiters.clone())
-            .map(Root::into_owned)
-            .map_err(format_err)?;
-
-        let blocks = Self::get_blocks(root.content.iter());
-
-        Ok(TemplateNode {
-            data,
-            blocks,
-            root,
-            escape_override,
-            trim_override,
-        })
-    }
-
-    // descend the template inheritance list rendering all of them sequentially
-    // while performing necessary expansions
-    pub fn expand(self, cfg: &Config) -> syn::Result<TokenStream> {
-        let mut expanded_blocks = Vec::new();
-        let mut toks = TokenStream::new();
-        let mut cur = Some(TemplateRef(0, &self.0));
-        while let Some(t) = cur {
-            if let Some(path) = t.data.path.as_ref().map(|p| p.as_str()) {
-                // this should ensure that the compiler knows that the code is dependent on this file
-                toks.extend(quote! { ::core::include_bytes!(#path); });
-            }
-            toks.extend(t.expand(cfg, &expanded_blocks)?);
-            expanded_blocks.extend(t.blocks.keys().map(|s| s.clone().into()));
-            cur = t.child();
-        }
-        Ok(toks)
-    }
-
-    fn get_parent<'a>(root: &Root<'a>) -> Option<std::borrow::Cow<'a, str>> {
-        match root.content.first() {
-            Some(Item::Expr(Expr::Extends(e))) => Some(e.clone()),
-            _ => None,
-        }
-    }
-
-    // get all blocks including sub-blocks
-    fn get_blocks<'a>(
-        content: impl IntoIterator<Item = &'a Item<'static>>,
-    ) -> HashMap<String, ItemBlock<'static>> {
-        content
-            .into_iter()
-            .filter_map(|i| match i {
-                Item::Block(b) => Some(b),
-                _ => None,
-            })
-            .flat_map(|b| {
-                // get the blocks within this block
-                let content: Vec<_> = b
-                    .content
-                    .iter()
-                    .filter(|i| matches!(i, Item::Block(..)))
-                    /*.filter_map(|i| match i {
-                        Item::Block(..) => Some(i),
-                        //BlockItem::Item(i) if matches!(i, Item::Expr(Expr::Block(..))) => Some(i),
-                        _ => None,
-                    })*/
-                    .collect();
-                if !content.is_empty() {
-                    let mut m = Self::get_blocks(content);
-                    m.insert(b.name.to_string(), b.clone());
-                    m
-                } else {
-                    HashMap::from([(b.name.to_string(), b.clone())])
-                }
-            })
-            .collect()
-    }
+    Ok(toks)
 }
 
-#[derive(Clone, Copy)]
-struct TemplateRef<'a>(usize, &'a [TemplateNode]);
-
-impl<'a> TemplateRef<'a> {
-    // get the parent node if one exists
-    fn parent(self) -> Option<Self> {
-        self.0.checked_sub(1).map(|idx| Self(idx, self.1))
-    }
-
-    // get the child node if one exists
-    fn child(self) -> Option<Self> {
-        let idx = self.0 + 1;
-        if idx < self.1.len() {
-            Some(Self(idx, self.1))
-        } else {
-            None
-        }
-    }
-
-    // get the deepest child that contains the specified block_name
-    // checks ALL nodes reguardless of if the direct parent did not contain
-    // the block, returns the current template if none is found
-    fn deepest_child(self, block_name: impl AsRef<str>) -> Self {
-        let mut cur = self;
-        let mut next = self.child();
-        while let Some(t) = next {
-            if t.blocks.contains_key(block_name.as_ref()) {
-                cur = t;
-            }
-            next = next.unwrap().child();
-        }
-        cur
-    }
-
-    // expand a block directly (does not lookup the deepest child to expand)
-    fn expand_block_inner(self, cfg: &Config, block: &ItemBlock) -> syn::Result<TokenStream> {
-        block
-            .content
-            .iter()
-            .map(|bi| match bi {
-                Item::Expr(Expr::SuperCall) => {
-                    let parent = self.parent();
-                    let pblock = parent
-                        .as_ref()
-                        .and_then(|p| p.blocks.get(block.name.as_ref()));
-                    if let Some((parent, pblock)) = parent.zip(pblock) {
-                        parent.expand_block_inner(cfg, pblock)
-                    } else {
-                        Ok(quote! {})
-                    }
-                }
-                item => self.expand_item(cfg, item),
-            })
-            .collect()
-    }
-
-    // expand a block by navigating to the deepest child and
-    // then using `expand_block_inner`
-    fn expand_block(self, cfg: &Config, block: &ItemBlock) -> syn::Result<TokenStream> {
-        let deepest = self.deepest_child(&block.name);
-        let block = deepest.blocks.get(block.name.as_ref()).unwrap();
-        deepest.expand_block_inner(cfg, block)
-    }
-
-    // expand the closing statement of an if expression
-    fn expand_if_branch(self, cfg: &Config, close: &IfBranch) -> syn::Result<TokenStream> {
-        match close {
-            IfBranch::End => Ok(quote! {}),
-            IfBranch::Else { content, .. } => {
-                let items: TokenStream = content
-                    .iter()
-                    .map(|i| self.expand_item(cfg, i))
-                    .collect::<Result<_, _>>()?;
-                Ok(quote! { else { #items } })
-            }
-            IfBranch::ElseIf {
-                cond,
-                content,
-                branch,
-            } => {
-                let items: TokenStream = content
-                    .iter()
-                    .map(|i| self.expand_item(cfg, i))
-                    .collect::<Result<_, _>>()?;
-                let close = self.expand_if_branch(cfg, branch)?;
-                Ok(quote! {
-                    else if #cond {
-                        #items
-                    } #close
-                })
-            }
-        }
-    }
-
-    // expand an arm of a match expression
-    fn expand_match_arm(self, cfg: &Config, arm: &MatchArm) -> syn::Result<TokenStream> {
-        let pat = &arm.pat;
-        let guard = arm.guard.as_ref().map(|g| quote! { if #g });
-        let items: TokenStream = arm
-            .content
-            .iter()
-            .map(|i| self.expand_item(cfg, i))
-            .collect::<Result<_, _>>()?;
-        Ok(quote! { #pat #guard => { #items } })
-    }
-
-    // expand an item which may be one of many different things
-    fn expand_item(self, cfg: &Config, item: &Item) -> syn::Result<TokenStream> {
-        let writer = &cfg.writer_name;
-        let escaper = self.escape_override.clone().unwrap_or_else(|| {
-            cfg.escaper(
-                self.data
-                    .path
+fn expand_block_inner(
+    cfg: &stilts_lang::Config,
+    node: &(impl TemplateRef<StiltsSpec> + Clone),
+    block: &ItemBlock,
+) -> syn::Result<TokenStream> {
+    block
+        .content
+        .iter()
+        .map(|bi| match bi {
+            Item::Expr(Expr::SuperCall) => {
+                let parent = node.parent();
+                let pblock = parent
                     .as_ref()
-                    .and_then(|p| p.extension())
-                    .unwrap_or_default(),
-            )
-        });
-        match item {
-            Item::Content(c) => {
-                let c = match self.trim_override.unwrap_or(cfg.trim) {
-                    true => c.as_ref().trim(),
-                    false => c.as_ref(),
-                };
-                if !c.is_empty() && !c.chars().all(char::is_whitespace) {
-                    Ok(quote! { #writer.write_str(#c)?; })
+                    .and_then(|p| p.node().blocks.get(block.name.as_ref()))
+                    .cloned();
+                if let Some((parent, pblock)) = parent.zip(pblock) {
+                    expand_block_inner(cfg, &parent, &pblock)
                 } else {
                     Ok(quote! {})
                 }
             }
-            Item::Block(block_item) => self.expand_block(cfg, block_item),
-            Item::For(ItemFor {
-                label,
-                pat,
-                expr,
-                content,
-            }) => {
-                let content: TokenStream = content
-                    .iter()
-                    .map(|i| self.expand_item(cfg, i))
-                    .collect::<Result<_, _>>()?;
-                Ok(quote! {
-                    #label for #pat in #expr {
-                        #content
-                    }
-                })
+            item => expand_item(cfg, node, &item),
+        })
+        .collect()
+}
+
+fn expand_block(
+    cfg: &stilts_lang::Config,
+    node: &(impl TemplateRef<StiltsSpec> + Clone),
+    block: &ItemBlock,
+) -> syn::Result<TokenStream> {
+    let deepest = deepest_child(node, &block.name);
+    let block = deepest.node().blocks.get(block.name.as_ref()).unwrap();
+    expand_block_inner(cfg, &deepest, block)
+}
+
+fn expand_if_branch(
+    cfg: &stilts_lang::Config,
+    node: &(impl TemplateRef<StiltsSpec> + Clone),
+    close: &IfBranch,
+) -> syn::Result<TokenStream> {
+    match close {
+        IfBranch::End => Ok(quote! {}),
+        IfBranch::Else { content, .. } => {
+            let items: TokenStream = content
+                .iter()
+                .map(|i| expand_item(cfg, node, i))
+                .collect::<Result<_, _>>()?;
+            Ok(quote! { else { #items } })
+        }
+        IfBranch::ElseIf {
+            cond,
+            content,
+            branch,
+        } => {
+            let items: TokenStream = content
+                .iter()
+                .map(|i| expand_item(cfg, node, i))
+                .collect::<Result<_, _>>()?;
+            let close = expand_if_branch(cfg, node, branch)?;
+            Ok(quote! {
+                else if #cond {
+                    #items
+                } #close
+            })
+        }
+    }
+}
+
+fn expand_match_arm(
+    cfg: &stilts_lang::Config,
+    node: &(impl TemplateRef<StiltsSpec> + Clone),
+    arm: &MatchArm,
+) -> syn::Result<TokenStream> {
+    let pat = &arm.pat;
+    let guard = arm.guard.as_ref().map(|g| quote! { if #g });
+    let items: TokenStream = arm
+        .content
+        .iter()
+        .map(|i| expand_item(cfg, node, i))
+        .collect::<Result<_, _>>()?;
+    Ok(quote! { #pat #guard => { #items } })
+}
+
+fn expand_item(
+    cfg: &stilts_lang::Config,
+    node: &(impl TemplateRef<StiltsSpec> + Clone),
+    item: &Item,
+) -> syn::Result<TokenStream> {
+    let writer = &cfg.writer_name;
+    let escaper = node.escape_implementation();
+    match item {
+        Item::Content(c) => {
+            let c = match node.trim() {
+                true => c.as_ref().trim(),
+                false => c.as_ref(),
+            };
+            if !c.is_empty() && !c.chars().all(char::is_whitespace) {
+                Ok(quote! { #writer.write_str(#c)?; })
+            } else {
+                Ok(quote! {})
             }
-            Item::If(ItemIf {
-                cond,
-                content,
-                branch,
-            }) => {
-                let items: TokenStream = content
-                    .iter()
-                    .map(|i| self.expand_item(cfg, i))
-                    .collect::<Result<_, _>>()?;
-                let branch = self.expand_if_branch(cfg, branch)?;
-                Ok(quote! {
-                    if #cond {
-                        #items
-                    } #branch
-                })
-            }
-            Item::Match(ItemMatch { expr, arms }) => {
-                let arms: TokenStream = arms
-                    .iter()
-                    .map(|i| self.expand_match_arm(cfg, i))
-                    .collect::<Result<_, _>>()?;
-                Ok(quote! {
-                    match #expr {
-                        #arms
-                    }
-                })
-            }
-            Item::Macro(ItemMacro {
-                name,
-                args,
-                content,
-            }) => {
-                let writer = &cfg.writer_name;
-                let writer_ty = quote! { &mut (impl ::core::fmt::Write + ?::core::marker::Sized) };
-                let content = content
-                    .iter()
-                    .map(|i| self.expand_item(cfg, i))
-                    .collect::<Result<TokenStream, _>>()?;
-                Ok(quote! {
-                    fn #name(#writer: #writer_ty, #args) -> ::core::fmt::Result {
-                        #content
-                        Ok(())
-                    };
-                })
-            }
-            Item::Expr(Expr::Extends(_)) => Ok(quote! {}),
-            Item::Expr(Expr::SuperCall) => Ok(quote! {}),
-            Item::Expr(Expr::Include { reference, args }) => {
-                let attrs = TemplateAttrs {
-                    source: TemplateSource::new_file(reference),
-                    escape: self.escape_override.clone(),
-                    trim: self.trim_override,
-                    block: None,
+        }
+        Item::Block(block_item) => expand_block(cfg, node, block_item),
+        Item::For(ItemFor {
+            label,
+            pat,
+            expr,
+            content,
+        }) => {
+            let content: TokenStream = content
+                .iter()
+                .map(|i| expand_item(cfg, node, i))
+                .collect::<Result<_, _>>()?;
+            Ok(quote! {
+                #label for #pat in #expr {
+                    #content
+                }
+            })
+        }
+        Item::If(ItemIf {
+            cond,
+            content,
+            branch,
+        }) => {
+            let items: TokenStream = content
+                .iter()
+                .map(|i| expand_item(cfg, node, i))
+                .collect::<Result<_, _>>()?;
+            let branch = expand_if_branch(cfg, node, branch)?;
+            Ok(quote! {
+                if #cond {
+                    #items
+                } #branch
+            })
+        }
+        Item::Match(ItemMatch { expr, arms }) => {
+            let arms: TokenStream = arms
+                .iter()
+                .map(|i| expand_match_arm(cfg, node, i))
+                .collect::<Result<_, _>>()?;
+            Ok(quote! {
+                match #expr {
+                    #arms
+                }
+            })
+        }
+        Item::Macro(ItemMacro {
+            name,
+            args,
+            content,
+        }) => {
+            let writer = &cfg.writer_name;
+            let writer_ty = quote! { &mut (impl ::core::fmt::Write + ?::core::marker::Sized) };
+            let content = content
+                .iter()
+                .map(|i| expand_item(cfg, node, i))
+                .collect::<Result<TokenStream, _>>()?;
+            Ok(quote! {
+                fn #name(#writer: #writer_ty, #args) -> ::core::fmt::Result {
+                    #content
+                    Ok(())
                 };
-                let graph = Graph::load(cfg, &attrs)?;
-                let included = graph.expand(cfg)?;
-                let arg_assignments = args.into_iter().map(|arg| {
-                    let syn::FieldValue { member, expr, .. } = arg;
-                    quote! {let #member = #expr;}
-                });
-                Ok(quote! {
-                    {
-                        #(#arg_assignments)*
-                        #included
-                    }
-                })
-            }
-            Item::Expr(Expr::MacroCall { name, args }) => {
-                let writer = &cfg.writer_name;
-                Ok(quote! {
-                    #name(#writer, #args)?;
-                })
-            }
-            Item::Expr(Expr::Expr(expr)) => Ok(
-                quote! { ::core::write!(#writer, "{}", ::stilts::escaping::Escaped::new(&#expr, #escaper))?; },
-            ),
-            Item::Expr(Expr::Stmt(stmt)) => Ok(quote! { #stmt }),
-        }
-    }
-
-    // expand the whole template
-    fn expand(self, cfg: &Config, prev: &[std::borrow::Cow<'_, str>]) -> syn::Result<TokenStream> {
-        self.root
-            .content
-            .iter()
-            .filter(|i| match i {
-                Item::Block(ItemBlock { name, .. }) => !prev.contains(name),
-                _ => true,
-            })
-            .map(|i| self.expand_item(cfg, i))
-            .collect()
-    }
-}
-
-impl<'a> std::ops::Deref for TemplateRef<'a> {
-    type Target = TemplateNode;
-
-    fn deref(&self) -> &Self::Target {
-        &self.1[self.0]
-    }
-}
-
-#[derive(Debug)]
-struct TemplateNode {
-    data: TemplateData,
-    escape_override: Option<syn::Path>,
-    trim_override: Option<bool>,
-    blocks: HashMap<String, ItemBlock<'static>>,
-    root: Root<'static>,
-}
-
-#[derive(Debug, PartialEq, Eq, Hash)]
-struct TemplateData {
-    path: Option<Utf8PathBuf>,
-    content: String,
-}
-
-fn relative_to(config: &Config, path: &Utf8PathBuf) -> String {
-    path.as_str().replace(config.template_dir.as_str(), "")
-}
-
-fn read_template(config: &Config, source: &TemplateSource) -> syn::Result<TemplateData> {
-    match source {
-        TemplateSource::File(path) => {
-            let path = config.template_dir.join(path.value());
-            Ok(TemplateData {
-                content: std::fs::read_to_string(&path)
-                    .map_err(|io| err!(format!("{io} while reading {}", path.clone())))?,
-                path: Some(path),
             })
         }
-        TemplateSource::Literal(content) => Ok(TemplateData {
-            path: None,
-            content: content.value(),
-        }),
+        Item::Expr(Expr::Extends(_)) => Ok(quote! {}),
+        Item::Expr(Expr::SuperCall) => Ok(quote! {}),
+        Item::Expr(Expr::Include { reference, args }) => {
+            let included = expand_graph(
+                cfg.clone(),
+                TemplateOptions {
+                    source: stilts_lang::TemplateSource::File(reference.into()),
+                    overrides: node.node().overrides.clone(),
+                    only_block: None,
+                },
+            )?;
+            let arg_assignments = args.into_iter().map(|arg| {
+                let syn::FieldValue { member, expr, .. } = arg;
+                quote! {let #member = #expr;}
+            });
+            Ok(quote! {
+                {
+                    #(#arg_assignments)*
+                    #included
+                }
+            })
+        }
+        Item::Expr(Expr::MacroCall { name, args }) => {
+            let writer = &cfg.writer_name;
+            Ok(quote! {
+                #name(#writer, #args)?;
+            })
+        }
+        Item::Expr(Expr::Expr(expr)) => Ok(
+            quote! { ::core::write!(#writer, "{}", ::stilts::escaping::Escaped::new(&#expr, #escaper))?; },
+        ),
+        Item::Expr(Expr::Stmt(stmt)) => Ok(quote! { #stmt }),
     }
+}
+
+fn expand_node(
+    cfg: &stilts_lang::Config,
+    node: &(impl TemplateRef<StiltsSpec> + Clone),
+    prev: &[std::borrow::Cow<'_, str>],
+) -> syn::Result<TokenStream> {
+    node.node()
+        .root
+        .content
+        .iter()
+        .filter(|i| match i {
+            Item::Block(ItemBlock { name, .. }) => !prev.contains(&name),
+            _ => true,
+        })
+        .map(|i| expand_item(cfg, node, i))
+        .collect()
+}
+
+fn deepest_child<T: TemplateRef<StiltsSpec> + Clone>(node: &T, block_name: impl AsRef<str>) -> T {
+    let mut next = node.children().next();
+    let mut cur = node.clone();
+    while let Some(t) = next {
+        if t.node().blocks.contains_key(block_name.as_ref()) {
+            cur = t;
+            next = cur.children().next();
+        } else {
+            break;
+        }
+    }
+    cur
 }
 
 pub fn template(input: TemplateInput) -> syn::Result<TokenStream> {
@@ -470,20 +289,25 @@ pub fn template(input: TemplateInput) -> syn::Result<TokenStream> {
         generics,
         fields,
         attrs,
-    } = &input;
+    } = input;
 
-    let config = Config::load().map_err(|e| err!(format!("Stilts Config Error: {e}")))?;
+    let config = crate::config::load().map_err(|e| err!(format!("Stilts Config Error: {e}")))?;
 
-    let mime_type = attrs.source.mime_type().map(|m| m.to_string());
+    let mime_type = attrs
+        .source
+        .map_path(|p| mime_guess::from_path(p))
+        .and_then(|g| g.first())
+        .map(|m| m.to_string());
     let mime_type = match mime_type {
         Some(mt) => quote! { Some(#mt) },
         None => quote! { None },
     };
 
-    let graph = Graph::load(&config, attrs)?;
-    let template_code = graph.expand(&config)?;
+    //let graph = Graph::load(&config, attrs)?;
+    //let template_code = graph.expand(&config)?;
+    let writer = config.writer_name.clone();
+    let template_code = expand_graph(config, attrs.into_options())?;
 
-    let writer = &config.writer_name;
     let field_idents = fields.iter().map(|f| &f.ident);
 
     let (impl_gen, type_gen, where_clause) = generics.split_for_impl();

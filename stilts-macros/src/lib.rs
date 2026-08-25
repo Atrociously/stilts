@@ -9,7 +9,6 @@ mod config;
 mod expand;
 mod integrations;
 mod parse;
-mod pathing;
 
 pub(crate) const ATTR_NAME: &str = "stilts";
 

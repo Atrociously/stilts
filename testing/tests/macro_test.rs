@@ -1,5 +1,6 @@
 #![warn(clippy::pedantic)]
 
+use pretty_assertions::assert_eq;
 use stilts::Template;
 
 #[derive(Template)]
@@ -29,7 +30,7 @@ fn ensure_matches() {
 <html><head>i have stuffoverwrites</head>
     <body>
         <header>2my code content &lt;a&gt;&lt;&#x2F;a&gt;my code content &lt;a&gt;&lt;&#x2F;a&gt;</header>
-        <main>Hello Word<a href="/">MY MAN</a>my code content <a></a></main>
+        <main>Hello World<a href="/">MY MAN</a>my code content <a></a></main>
         <footer>INSIDE MY MACOOFMYSTR</footer>
     </body>
 </html>"#;

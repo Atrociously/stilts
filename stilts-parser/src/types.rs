@@ -3,7 +3,11 @@ use std::borrow::Cow;
 /// The root of a template
 ///
 /// It contains all the content of the template
-#[cfg_attr(any(test, feature = "extra-traits"), derive(Clone, Debug, PartialEq, Eq, Hash))]
+#[cfg_attr(
+    any(test, feature = "extra-traits"),
+    derive(Clone, Debug, PartialEq, Eq, Hash)
+)]
+#[derive(Default)]
 pub struct Root<'i> {
     pub content: Vec<Item<'i>>,
 }
@@ -13,7 +17,10 @@ pub struct Root<'i> {
 /// A template is made up of a series of *items* which define the structure
 /// of the template. An item is either template content, multi-expression block, or a single
 /// expression
-#[cfg_attr(any(test, feature = "extra-traits"), derive(Clone, Debug, PartialEq, Eq, Hash))]
+#[cfg_attr(
+    any(test, feature = "extra-traits"),
+    derive(Clone, Debug, PartialEq, Eq, Hash)
+)]
 pub enum Item<'i> {
     Content(Cow<'i, str>),
     Block(ItemBlock<'i>),
@@ -24,13 +31,19 @@ pub enum Item<'i> {
     Expr(Expr<'i>),
 }
 
-#[cfg_attr(any(test, feature = "extra-traits"), derive(Clone, Debug, PartialEq, Eq, Hash))]
+#[cfg_attr(
+    any(test, feature = "extra-traits"),
+    derive(Clone, Debug, PartialEq, Eq, Hash)
+)]
 pub struct ItemBlock<'i> {
     pub name: Cow<'i, str>,
     pub content: Vec<Item<'i>>,
 }
 
-#[cfg_attr(any(test, feature = "extra-traits"), derive(Clone, Debug, PartialEq, Eq, Hash))]
+#[cfg_attr(
+    any(test, feature = "extra-traits"),
+    derive(Clone, Debug, PartialEq, Eq, Hash)
+)]
 pub struct ItemFor<'i> {
     pub label: Option<syn::Label>,
     pub pat: syn::Pat,
@@ -38,14 +51,20 @@ pub struct ItemFor<'i> {
     pub content: Vec<Item<'i>>,
 }
 
-#[cfg_attr(any(test, feature = "extra-traits"), derive(Clone, Debug, PartialEq, Eq, Hash))]
+#[cfg_attr(
+    any(test, feature = "extra-traits"),
+    derive(Clone, Debug, PartialEq, Eq, Hash)
+)]
 pub struct ItemIf<'i> {
     pub cond: syn::Expr,
     pub content: Vec<Item<'i>>,
     pub branch: IfBranch<'i>,
 }
 
-#[cfg_attr(any(test, feature = "extra-traits"), derive(Clone, Debug, PartialEq, Eq, Hash))]
+#[cfg_attr(
+    any(test, feature = "extra-traits"),
+    derive(Clone, Debug, PartialEq, Eq, Hash)
+)]
 pub enum IfBranch<'i> {
     ElseIf {
         cond: syn::Expr,
@@ -58,27 +77,39 @@ pub enum IfBranch<'i> {
     End,
 }
 
-#[cfg_attr(any(test, feature = "extra-traits"), derive(Clone, Debug, PartialEq, Eq, Hash))]
+#[cfg_attr(
+    any(test, feature = "extra-traits"),
+    derive(Clone, Debug, PartialEq, Eq, Hash)
+)]
 pub struct ItemMatch<'i> {
     pub expr: syn::Expr,
     pub arms: Vec<MatchArm<'i>>,
 }
 
-#[cfg_attr(any(test, feature = "extra-traits"), derive(Clone, Debug, PartialEq, Eq, Hash))]
+#[cfg_attr(
+    any(test, feature = "extra-traits"),
+    derive(Clone, Debug, PartialEq, Eq, Hash)
+)]
 pub struct MatchArm<'i> {
     pub pat: syn::Pat,
     pub guard: Option<syn::Expr>,
     pub content: Vec<Item<'i>>,
 }
 
-#[cfg_attr(any(test, feature = "extra-traits"), derive(Clone, Debug, PartialEq, Eq, Hash))]
+#[cfg_attr(
+    any(test, feature = "extra-traits"),
+    derive(Clone, Debug, PartialEq, Eq, Hash)
+)]
 pub struct ItemMacro<'i> {
     pub name: syn::Ident,
     pub args: syn::punctuated::Punctuated<syn::FnArg, syn::Token![,]>,
     pub content: Vec<Item<'i>>,
 }
 
-#[cfg_attr(any(test, feature = "extra-traits"), derive(Clone, Debug, PartialEq, Eq, Hash))]
+#[cfg_attr(
+    any(test, feature = "extra-traits"),
+    derive(Clone, Debug, PartialEq, Eq, Hash)
+)]
 pub enum Expr<'i> {
     Extends(Cow<'i, str>),
     Include {
@@ -159,7 +190,10 @@ impl<'i> Expr<'i> {
     pub fn into_owned(self) -> Expr<'static> {
         match self {
             Self::Extends(v) => Expr::Extends(v.into_owned().into()),
-            Self::Include { reference: name, args } => Expr::Include {
+            Self::Include {
+                reference: name,
+                args,
+            } => Expr::Include {
                 reference: name.into_owned().into(),
                 args,
             },

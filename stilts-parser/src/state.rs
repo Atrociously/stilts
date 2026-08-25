@@ -2,13 +2,17 @@ use std::borrow::Cow;
 
 use bitflags::bitflags;
 
+#[cfg(not(feature = "sync-state"))]
 type Lrc<T> = std::rc::Rc<T>;
+
+#[cfg(feature = "sync-state")]
+type Lrc<T> = std::sync::Arc<T>;
 
 /// Template Delimiters
 ///
 /// Defines the delimiters used while parsing templates to differentiate
 /// between expressions and template content
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Delims(Lrc<DelimContainer>);
 
 impl Delims {
@@ -28,6 +32,7 @@ impl Delims {
     }
 }
 
+#[derive(Debug)]
 struct DelimContainer {
     open: Cow<'static, str>,
     close: Cow<'static, str>,
@@ -54,5 +59,25 @@ bitflags! {
 impl Default for State {
     fn default() -> Self {
         Self::ALLOW_BLOCK | Self::ALLOW_EXTEND
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Delims {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        <[String; 2]>::deserialize(deserializer).map(|[open, close]| Self::new(open, close))
+    }
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for Delims {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        [self.open(), self.close()].serialize(serializer)
     }
 }

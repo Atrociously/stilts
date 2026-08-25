@@ -22,6 +22,7 @@ stilts = { path = "../" }
 [dev-dependencies]
 stilts = { path = "../", features = ["err-fancy"]}
 divan = "0.1.11"
+pretty_assertions.workspace = true
 
 [[bench]]
 name = "all"
