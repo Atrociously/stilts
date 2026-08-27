@@ -1,24 +1,29 @@
-mod error;
+pub mod error;
+mod file_system;
+mod graph_load;
 mod heirarchy;
-pub mod language;
 mod pathing;
 mod template;
 
-pub use error::ParentError;
-pub use language::{Language, StiltsLanguage};
-pub use template::{TemplateData, TemplateNode, TemplateOptions, TemplateSource};
+pub use file_system::{FileSystem, StdFS};
+pub use graph_load::load;
+pub use heirarchy::Heirarchy;
+pub use template::{TemplateConfig, TemplateData, TemplateNode, TemplateOptions, TemplateSource};
 
 pub trait TemplateGraph {
+    type Idx: Copy;
     type Ref<'graph>: TemplateRef<'graph>
     where
         Self: 'graph;
 
-    fn insert(&mut self, node: TemplateNode) -> Self::Ref<'_>;
-    fn insert_parent<'g>(
-        &'g mut self,
-        child_ref: &Self::Ref<'g>,
+    fn get_ref(&self, idx: Self::Idx) -> Self::Ref<'_>;
+
+    fn insert_root(&mut self, node: TemplateNode) -> Self::Idx;
+    fn insert_parent(
+        &mut self,
+        child_idx: Self::Idx,
         node: TemplateNode,
-    ) -> Result<Self::Ref<'g>, ParentError<Self::Ref<'g>>>;
+    ) -> Result<Self::Idx, error::ParentError<Self::Idx>>;
 }
 
 pub trait TemplateRef<'graph>: Sized {

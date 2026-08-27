@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use stilts_lang::{StiltsSpec, TemplateGraph, TemplateOptions, TemplateRef};
+use stilts_lang::{StiltsSpec, TemplateConfig, TemplateGraph, TemplateOptions, TemplateRef};
 use stilts_parser::types::{
     Expr, IfBranch, Item, ItemBlock, ItemFor, ItemIf, ItemMacro, ItemMatch, MatchArm,
 };
@@ -33,10 +33,10 @@ fn format_err(e: stilts_lang::Error) -> syn::Error {
     }
 }
 
-fn expand_graph(config: stilts_lang::Config, opts: TemplateOptions) -> syn::Result<TokenStream> {
-    let fs = stilts_lang::StdFs;
-    let mut graph = stilts_lang::Heirarchy::new(fs, config.clone());
-    let root = graph.load(opts).map_err(format_err)?;
+fn expand_graph(config: TemplateConfig, opts: TemplateOptions) -> syn::Result<TokenStream> {
+    let mut fs = stilts_lang::StdFS;
+    let mut graph = stilts_lang::Heirarchy::default();
+    let root = stilts_lang::load(&mut graph, &mut fs, &config, opts).map_err(format_err)?;
 
     let mut expanded_blocks = Vec::new();
     let mut toks = TokenStream::new();
@@ -47,14 +47,14 @@ fn expand_graph(config: stilts_lang::Config, opts: TemplateOptions) -> syn::Resu
         }
         toks.extend(expand_node(&config, &t, &expanded_blocks)?);
         expanded_blocks.extend(t.node().blocks.keys().map(|s| s.clone().into()));
-        cur = t.children().next();
+        cur = t.child();
     }
     Ok(toks)
 }
 
-fn expand_block_inner(
-    cfg: &stilts_lang::Config,
-    node: &(impl TemplateRef<StiltsSpec> + Clone),
+fn expand_block_inner<'g>(
+    cfg: &TemplateConfig,
+    node: &(impl TemplateRef<'g> + Clone),
     block: &ItemBlock,
 ) -> syn::Result<TokenStream> {
     block
@@ -78,9 +78,9 @@ fn expand_block_inner(
         .collect()
 }
 
-fn expand_block(
-    cfg: &stilts_lang::Config,
-    node: &(impl TemplateRef<StiltsSpec> + Clone),
+fn expand_block<'g>(
+    cfg: &TemplateConfig,
+    node: &(impl TemplateRef<'g> + Clone),
     block: &ItemBlock,
 ) -> syn::Result<TokenStream> {
     let deepest = deepest_child(node, &block.name);
@@ -88,9 +88,9 @@ fn expand_block(
     expand_block_inner(cfg, &deepest, block)
 }
 
-fn expand_if_branch(
-    cfg: &stilts_lang::Config,
-    node: &(impl TemplateRef<StiltsSpec> + Clone),
+fn expand_if_branch<'g>(
+    cfg: &TemplateConfig,
+    node: &(impl TemplateRef<'g> + Clone),
     close: &IfBranch,
 ) -> syn::Result<TokenStream> {
     match close {
@@ -121,9 +121,9 @@ fn expand_if_branch(
     }
 }
 
-fn expand_match_arm(
-    cfg: &stilts_lang::Config,
-    node: &(impl TemplateRef<StiltsSpec> + Clone),
+fn expand_match_arm<'g>(
+    cfg: &TemplateConfig,
+    node: &(impl TemplateRef<'g> + Clone),
     arm: &MatchArm,
 ) -> syn::Result<TokenStream> {
     let pat = &arm.pat;
@@ -136,16 +136,16 @@ fn expand_match_arm(
     Ok(quote! { #pat #guard => { #items } })
 }
 
-fn expand_item(
-    cfg: &stilts_lang::Config,
-    node: &(impl TemplateRef<StiltsSpec> + Clone),
+fn expand_item<'g>(
+    cfg: &TemplateConfig,
+    node: &(impl TemplateRef<'g> + Clone),
     item: &Item,
 ) -> syn::Result<TokenStream> {
     let writer = &cfg.writer_name;
-    let escaper = node.escape_implementation();
+    let escaper = node.node().escape_implementation(cfg);
     match item {
         Item::Content(c) => {
-            let c = match node.trim() {
+            let c = match node.node().trim(cfg) {
                 true => c.as_ref().trim(),
                 false => c.as_ref(),
             };
@@ -223,9 +223,10 @@ fn expand_item(
             let included = expand_graph(
                 cfg.clone(),
                 TemplateOptions {
-                    source: stilts_lang::TemplateSource::File(reference.into()),
-                    overrides: node.node().overrides.clone(),
-                    only_block: None,
+                    source: stilts_lang::TemplateSource::File(reference.to_string()),
+                    escape: node.node().escape_override.clone(),
+                    trim: node.node().trim_override,
+                    block: None,
                 },
             )?;
             let arg_assignments = args.into_iter().map(|arg| {
@@ -252,9 +253,9 @@ fn expand_item(
     }
 }
 
-fn expand_node(
-    cfg: &stilts_lang::Config,
-    node: &(impl TemplateRef<StiltsSpec> + Clone),
+fn expand_node<'a>(
+    cfg: &TemplateConfig,
+    node: &(impl TemplateRef<'a> + Clone),
     prev: &[std::borrow::Cow<'_, str>],
 ) -> syn::Result<TokenStream> {
     node.node()
@@ -269,13 +270,13 @@ fn expand_node(
         .collect()
 }
 
-fn deepest_child<T: TemplateRef<StiltsSpec> + Clone>(node: &T, block_name: impl AsRef<str>) -> T {
-    let mut next = node.children().next();
+fn deepest_child<'a, T: TemplateRef<'a> + Clone>(node: &T, block_name: impl AsRef<str>) -> T {
+    let mut next = node.child();
     let mut cur = node.clone();
     while let Some(t) = next {
         if t.node().blocks.contains_key(block_name.as_ref()) {
             cur = t;
-            next = cur.children().next();
+            next = cur.child();
         } else {
             break;
         }

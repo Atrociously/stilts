@@ -1,7 +1,10 @@
 use std::borrow::Cow;
 
 use miette::{Diagnostic, SourceSpan};
-use winnow::{error::{ErrMode, ErrorKind}, stream::Stream};
+use winnow::{
+    error::{ErrMode, ErrorKind},
+    stream::Stream,
+};
 
 use crate::Located;
 
@@ -17,7 +20,7 @@ pub struct Error<'i> {
     source_code: Cow<'i, str>,
     #[related]
     related: Vec<Self>,
-    pub(crate) kind: Option<ErrorKind>
+    pub(crate) kind: Option<ErrorKind>,
 }
 
 impl<'i> Error<'i> {
@@ -91,9 +94,7 @@ impl<'i> Error<'i> {
             msg: self.msg.into_owned().into(),
             label: self.label.into_owned().into(),
             source_code: self.source_code.into_owned().into(),
-            related: self.related.into_iter()
-                .map(Self::into_owned)
-                .collect(),
+            related: self.related.into_iter().map(Self::into_owned).collect(),
             ..self
         }
     }

@@ -2,10 +2,7 @@ use proc_macro2::{Ident, Span};
 use quote::quote;
 use syn::Generics;
 
-pub fn expand_integration(
-    ident: &Ident,
-    generics: &Generics,
-) -> proc_macro2::TokenStream {
+pub fn expand_integration(ident: &Ident, generics: &Generics) -> proc_macro2::TokenStream {
     let type_gen = generics.split_for_impl().1;
     let mut generics = generics.clone();
     let req_lifetime = syn::Lifetime::new("'rocket_request", Span::call_site());
@@ -16,8 +13,14 @@ pub fn expand_integration(
     res_lifetime_param.colon_token = Some(syn::Token![:](Span::call_site()));
     res_lifetime_param.bounds = syn::punctuated::Punctuated::new();
     res_lifetime_param.bounds.push(req_lifetime.clone());
-    generics.params.push(syn::GenericParam::Lifetime(syn::LifetimeParam::new(req_lifetime)));
-    generics.params.push(syn::GenericParam::Lifetime(res_lifetime_param));
+    generics
+        .params
+        .push(syn::GenericParam::Lifetime(syn::LifetimeParam::new(
+            req_lifetime,
+        )));
+    generics
+        .params
+        .push(syn::GenericParam::Lifetime(res_lifetime_param));
 
     let (impl_gen, _, where_clause) = generics.split_for_impl();
     quote! {
